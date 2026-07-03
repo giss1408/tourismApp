@@ -1,0 +1,44 @@
+<!-- web/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="ExploreWorld - Your perfect travel companion">
+  
+  <title>ExploreWorld</title>
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- SEO Meta Tags -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="keywords" content="travel, tourism, destinations, booking, vacation">
+  <meta property="og:title" content="ExploreWorld - Travel App">
+  <meta property="og:description" content="Discover amazing places around the world">
+  <meta property="og:image" content="https://yourdomain.com/og-image.jpg">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <!-- Add this to web/index.html head section -->
+<script>
+  // Fix for Chrome DevTools connection issues
+  if (typeof document.documentElement.oncontextmenu === "undefined") {
+    document.documentElement.oncontextmenu = null;
+  }
+  
+  // Prevent context menu that might interfere
+  document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+  });
+</script>
+</head>
+<body>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () {
+        navigator.serviceWorker.register('flutter_service_worker.js');
+      });
+    }
+  </script>
+  <script src="main.dart.js" type="application/javascript"></script>
+</body>
+</html>

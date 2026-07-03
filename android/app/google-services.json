@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "63072787122",
+    "project_id": "my-tourim-app-123",
+    "storage_bucket": "my-tourim-app-123.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:63072787122:android:e28b17d538aebbb56907ab",
+        "android_client_info": {
+          "package_name": "com.regisse.tourism"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYzFF51rmwzGvQhdnPR6JQwNePzXZKVq0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
