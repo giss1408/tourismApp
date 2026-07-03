@@ -10,7 +10,7 @@
 .svn/
 migrate_working_dir/
 
-# IntelliJ related
+# IDEs
 *.iml
 *.ipr
 *.iws
@@ -21,23 +21,27 @@ migrate_working_dir/
 # is commented out by default.
 #.vscode/
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# Flutter / Dart / Pub
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
-.pub-cache/
+.packages
 .pub/
-/build/
+.pub-cache/
+build/
+coverage/
 
-# Symbolication related
+# Generated docs and platform temp files
+doc/api/
+ios/Flutter/.last_build_id
+
+# Symbolication artifacts
 app.*.symbols
 
-# Obfuscation related
+# Obfuscation maps
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# Android build outputs
+android/app/debug/
+android/app/profile/
+android/app/release/
