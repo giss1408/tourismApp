@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../widgets/custom_divider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -226,6 +225,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _showForgotPasswordDialog() {
     final emailController = TextEditingController();
+    final colorScheme = Theme.of(context).colorScheme;
 
     showDialog(
       context: context,

@@ -293,6 +293,7 @@ class HomeScreen extends StatelessWidget {
 
   void _showSpecialOffers(BuildContext context, DestinationProvider destinationProvider) {
     final localizations = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
     final discountedDestinations = destinationProvider.destinations
         .where((destination) => destination.discount > 0)
         .toList();
