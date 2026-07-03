@@ -377,16 +377,13 @@ class ProfileScreen extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.language),
               title: Text(localizations.language),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    languageProvider.getCurrentLanguageName(),
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                  const Icon(Icons.chevron_right),
-                ],
+              subtitle: Text(
+                languageProvider.getCurrentLanguageName(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.grey),
               ),
+              trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 _showLanguageDialog(context, languageProvider, localizations);
               },
@@ -394,7 +391,12 @@ class ProfileScreen extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.currency_exchange),
               title: Text(localizations.currency),
-              trailing: const Text('USD'),
+              subtitle: const Text(
+                'USD',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: const Icon(Icons.chevron_right),
             ),
           ],
         ),
@@ -501,28 +503,32 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(localizations.settings),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SwitchListTile(
-              title: Text(localizations.darkMode),
-              value: themeProvider.themeMode == ThemeMode.dark,
-              onChanged: (value) {
-                themeProvider.toggleTheme(value);
-                Navigator.pop(context);
-              },
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              title: Text(localizations.language),
-              subtitle: Text(languageProvider.getCurrentLanguageName()),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {
-                Navigator.pop(context);
-                _showLanguageDialog(context, languageProvider, localizations);
-              },
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(localizations.darkMode),
+                value: themeProvider.themeMode == ThemeMode.dark,
+                onChanged: (value) {
+                  themeProvider.toggleTheme(value);
+                  Navigator.pop(context);
+                },
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(localizations.language),
+                subtitle: Text(languageProvider.getCurrentLanguageName()),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showLanguageDialog(context, languageProvider, localizations);
+                },
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -539,20 +545,28 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(localizations.language),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: LanguageProvider.supportedLanguages.map((language) {
-            return ListTile(
-              title: Text(language['nativeName']!),
-              trailing: languageProvider.locale.languageCode == language['code']
-                  ? const Icon(Icons.check, color: Colors.green)
-                  : null,
-              onTap: () {
-                languageProvider.setLocale(Locale(language['code']!));
-                Navigator.pop(context);
-              },
-            );
-          }).toList(),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: LanguageProvider.supportedLanguages.map((language) {
+              return ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  language['nativeName']!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: languageProvider.locale.languageCode == language['code']
+                    ? const Icon(Icons.check, color: Colors.green)
+                    : null,
+                onTap: () {
+                  languageProvider.setLocale(Locale(language['code']!));
+                  Navigator.pop(context);
+                },
+              );
+            }).toList(),
+          ),
         ),
         actions: [
           TextButton(

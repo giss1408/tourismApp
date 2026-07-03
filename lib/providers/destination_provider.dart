@@ -1,4 +1,3 @@
-// providers/destination_provider.dart
 import 'package:flutter/foundation.dart';
 import '../models/destination_model.dart';
 import '../services/destination_service.dart';
@@ -18,7 +17,6 @@ class DestinationProvider with ChangeNotifier {
     loadDestinations();
   }
 
-  // Add or merge these sample destinations into your existing sample list / loadDestinations()
   final List<Destination> _sampleDestinations = [
     Destination(
       id: 'dest_101',
@@ -125,22 +123,33 @@ class DestinationProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      _destinations = await DestinationService.getDestinations();
-      _featuredDestinations = _destinations.where((d) => d.isFeatured).toList();
+      final serviceDestinations = await DestinationService.getDestinations();
+      _destinations = _mergeUniqueDestinations(serviceDestinations, _sampleDestinations);
       _error = '';
     } catch (e) {
       _error = 'Failed to load destinations: $e';
-      // Fallback data in case of error
-      _destinations = _getFallbackDestinations();
-      _featuredDestinations = _destinations.where((d) => d.isFeatured).toList();
+      _destinations =
+          _mergeUniqueDestinations(_getFallbackDestinations(), _sampleDestinations);
     } finally {
+      _featuredDestinations = _destinations.where((d) => d.isFeatured).toList();
       _isLoading = false;
       notifyListeners();
     }
+  }
 
-    // Example usage: merge into provider list on load
-    _destinations.addAll(_sampleDestinations);
-    notifyListeners();
+  List<Destination> _mergeUniqueDestinations(
+    List<Destination> base,
+    List<Destination> extras,
+  ) {
+    final merged = <String, Destination>{
+      for (final destination in base) destination.id: destination,
+    };
+
+    for (final destination in extras) {
+      merged.putIfAbsent(destination.id, () => destination);
+    }
+
+    return merged.values.toList(growable: false);
   }
 
   List<Destination> _getFallbackDestinations() {

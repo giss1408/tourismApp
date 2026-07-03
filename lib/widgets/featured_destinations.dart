@@ -1,7 +1,6 @@
-// widgets/featured_destinations.dart - ADD IMPORT
 import 'package:flutter/material.dart';
 import '../models/destination_model.dart';
-import '../screens/destination_detail_screen.dart'; // ADD THIS IMPORT
+import '../screens/destination_detail_screen.dart';
 import 'booking_dialog.dart';
 
 class FeaturedDestinations extends StatelessWidget {
@@ -11,8 +10,6 @@ class FeaturedDestinations extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -45,6 +42,7 @@ class _FeaturedDestinationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final colorScheme = Theme.of(context).colorScheme;
     final cardWidth = screenWidth > 800 ? 280.0 : 220.0;
     
     return GestureDetector(
@@ -159,7 +157,7 @@ class _FeaturedDestinationCard extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.green,
+                            color: colorScheme.tertiary,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -173,6 +171,37 @@ class _FeaturedDestinationCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: GestureDetector(
+                        onTap: () {
+                          _showBookingDialog(context);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Book',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(Icons.arrow_forward, color: Colors.white, size: 12),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -185,7 +214,7 @@ class _FeaturedDestinationCard extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: colorScheme.surface.withOpacity(0.9),
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
@@ -197,38 +226,6 @@ class _FeaturedDestinationCard extends StatelessWidget {
                 ),
               ),
               
-              // Book Button
-              Positioned(
-                bottom: 12,
-                right: 12,
-                child: GestureDetector(
-                  onTap: () {
-                    _showBookingDialog(context);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade600,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Book',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(Icons.arrow_forward, color: Colors.white, size: 12),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),

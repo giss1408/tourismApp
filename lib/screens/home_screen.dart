@@ -7,6 +7,7 @@ import '../widgets/search_widget.dart';
 import '../widgets/category_chips.dart';
 import '../providers/destination_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../theme/app_theme.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -15,123 +16,32 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final destinationProvider = context.watch<DestinationProvider>();
     final size = MediaQuery.of(context).size;
-    final statusBarHeight = MediaQuery.of(context).padding.top;
     final localizations = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final heroHeight = (size.height * 0.21).clamp(170.0, 220.0);
 
     return Scaffold(
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // App Bar with Gradient
+          // Compact hero header
           SliverAppBar(
-            expandedHeight: size.height * 0.28,
+            expandedHeight: heroHeight,
             floating: false,
             pinned: true,
+            elevation: 0,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             flexibleSpace: FlexibleSpaceBar(
               collapseMode: CollapseMode.pin,
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.blue.shade800,
-                      Colors.green.shade600,
-                      Colors.teal.shade500,
-                    ],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Background pattern
-                    Positioned(
-                      top: -50,
-                      right: -30,
-                      child: Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: -80,
-                      left: -40,
-                      child: Container(
-                        width: 250,
-                        height: 250,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                    // Content
-                    Padding(
-                      padding: EdgeInsets.only(
-                        top: statusBarHeight + 20,
-                        left: 20,
-                        right: 20,
-                        bottom: 20,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            localizations.exploreThe,
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w300,
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            localizations.beautifulWorld,
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            localizations.discoverAmazingPlaces,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white.withOpacity(0.8),
-                              height: 1.4,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              background: _HomeHero(localizations: localizations),
             ),
           ),
 
           // Search Section
           SliverToBoxAdapter(
-            child: Container(
-              transform: Matrix4.translationValues(0, -10, 0),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Card(
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(4.0),
-                    child: SearchWidget(hintText: localizations.whereDoYouWantToGo),
-                  ),
-                ),
-              ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: SearchWidget(hintText: localizations.whereDoYouWantToGo),
             ),
           ),
 
@@ -183,9 +93,9 @@ class HomeScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Colors.orange.shade400,
-                      Colors.red.shade400,
-                      Colors.pink.shade400,
+                      colorScheme.secondary,
+                      colorScheme.tertiary,
+                      colorScheme.primary,
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -193,7 +103,7 @@ class HomeScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.orange.withOpacity(0.3),
+                      color: colorScheme.primary.withOpacity(0.25),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -486,7 +396,7 @@ class HomeScreen extends StatelessWidget {
                             title: Text(destination.name),
                             subtitle: Text(
                               '${(destination.discount * 100).toInt()}% ${localizations.discount} - ${localizations.save} \$${(destination.price * destination.discount).toStringAsFixed(0)}',
-                              style: const TextStyle(color: Colors.green),
+                              style: TextStyle(color: colorScheme.tertiary),
                             ),
                             trailing: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -519,6 +429,133 @@ class HomeScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _HomeHero extends StatelessWidget {
+  final AppLocalizations localizations;
+
+  const _HomeHero({required this.localizations});
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.of(context).padding.top;
+    final brightness = Theme.of(context).brightness;
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppTheme.heroGradient(brightness),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned(
+            top: -54,
+            right: -30,
+            child: Container(
+              width: 170,
+              height: 170,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -65,
+            left: -40,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(20, top + 14, 20, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  '${localizations.exploreThe} ${localizations.beautifulWorld}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    height: 1.05,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  localizations.discoverAmazingPlaces,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.9),
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    _HeroPill(
+                      icon: Icons.auto_awesome,
+                      label: localizations.featuredDestinations,
+                    ),
+                    _HeroPill(
+                      icon: Icons.sell,
+                      label: localizations.specialOffers,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _HeroPill({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withOpacity(0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

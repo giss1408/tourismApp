@@ -1,9 +1,8 @@
 // screens/auth_screen.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
+import '../theme/app_theme.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -23,6 +22,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: SafeArea(
         child: Container(
@@ -32,47 +33,47 @@ class _AuthScreenState extends State<AuthScreen> {
               // Header
               Expanded(
                 flex: 2,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.blue.shade800, Colors.green.shade600],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.heroGradient(Theme.of(context).brightness),
+                          borderRadius: BorderRadius.circular(25),
                         ),
-                        borderRadius: BorderRadius.circular(25),
+                        child: const Icon(
+                          Icons.travel_explore,
+                          color: Colors.white,
+                          size: 50,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.travel_explore,
-                        color: Colors.white,
-                        size: 50,
+                      const SizedBox(height: 20),
+                      Text(
+                        'ExploreWorld',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.primary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'ExploreWorld',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade800,
+                      const SizedBox(height: 8),
+                      Text(
+                        _isLogin
+                            ? 'Welcome back to your travel companion'
+                            : 'Join us to explore the world',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: colorScheme.onSurface.withOpacity(0.68),
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _isLogin 
-                          ? 'Welcome back to your travel companion'
-                          : 'Join us to explore the world',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey.shade600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 
@@ -99,7 +100,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: Text(
                         _isLogin ? 'Sign Up' : 'Sign In',
                         style: TextStyle(
-                          color: Colors.blue.shade600,
+                          color: colorScheme.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

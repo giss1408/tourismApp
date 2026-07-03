@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -17,8 +17,10 @@ Future<void> main() async {
     options: kIsWeb ? DefaultFirebaseOptions.currentPlatform : null,
   );
 
-  debugPrint('Firebase apps: ${Firebase.apps.map((a) => a.name).toList()}');
-  debugPrint('Default projectId: ${Firebase.app().options.projectId}');
+  if (kDebugMode) {
+    debugPrint('Firebase apps: ${Firebase.apps.map((a) => a.name).toList()}');
+    debugPrint('Default projectId: ${Firebase.app().options.projectId}');
+  }
   runApp(
     MultiProvider(
       providers: [

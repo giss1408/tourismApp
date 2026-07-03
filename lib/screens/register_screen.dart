@@ -1,8 +1,7 @@
-// screens/register_screen.dart - Add import
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../widgets/custom_divider.dart'; // ADD THIS IMPORT
+import '../widgets/custom_divider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -47,11 +46,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return Form(
-      key: _formKey,
-      child: Column(
-        children: [
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           // Error Message
           if (authProvider.error.isNotEmpty)
             Container(
@@ -59,22 +62,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: colorScheme.errorContainer,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade200),
+                border: Border.all(color: colorScheme.error.withOpacity(0.35)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.error, color: Colors.red.shade600, size: 16),
+                  Icon(Icons.error, color: colorScheme.error, size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       authProvider.error,
-                      style: TextStyle(color: Colors.red.shade600, fontSize: 12),
+                      style: TextStyle(color: colorScheme.error, fontSize: 12),
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.close, color: Colors.red.shade600, size: 16),
+                    icon: Icon(Icons.close, color: colorScheme.error, size: 16),
                     onPressed: authProvider.clearError,
                   ),
                 ],
@@ -191,13 +194,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             height: 50,
             child: ElevatedButton(
               onPressed: authProvider.isLoading ? null : _register,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade600,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
               child: authProvider.isLoading
                   ? const SizedBox(
                       width: 20,
@@ -237,19 +233,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: authProvider.isLoading ? null : () => _registerWithFacebook(),
-                  icon: const Icon(Icons.facebook, color: Colors.blue, size: 20),
+                  icon: Icon(Icons.facebook, color: colorScheme.primary, size: 20),
                   label: const Text('Facebook'),
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                   ),
                 ),
               ),
             ],
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

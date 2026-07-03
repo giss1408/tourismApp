@@ -11,13 +11,13 @@ class CategoryChips extends StatefulWidget {
 class _CategoryChipsState extends State<CategoryChips> {
   String _selectedCategory = 'All';
 
-  final List<Map<String, dynamic>> categories = [
-    {'name': 'All', 'icon': Icons.all_inclusive, 'color': Colors.blue},
-    {'name': 'Beach', 'icon': Icons.beach_access, 'color': Colors.orange},
-    {'name': 'Mountain', 'icon': Icons.landscape, 'color': Colors.green},
-    {'name': 'City', 'icon': Icons.location_city, 'color': Colors.purple},
-    {'name': 'Historical', 'icon': Icons.castle, 'color': Colors.brown},
-    {'name': 'Adventure', 'icon': Icons.hiking, 'color': Colors.red},
+  final List<Map<String, dynamic>> categories = const [
+    {'name': 'All', 'icon': Icons.all_inclusive, 'color': Color(0xFF145DA0)},
+    {'name': 'Beach', 'icon': Icons.beach_access, 'color': Color(0xFF1A8A84)},
+    {'name': 'Mountain', 'icon': Icons.landscape, 'color': Color(0xFF2E7D6B)},
+    {'name': 'City', 'icon': Icons.location_city, 'color': Color(0xFF5D6D7E)},
+    {'name': 'Historical', 'icon': Icons.castle, 'color': Color(0xFF8A6D3B)},
+    {'name': 'Adventure', 'icon': Icons.hiking, 'color': Color(0xFFB35C2E)},
   ];
 
   @override
@@ -68,7 +68,9 @@ class _CategoryChipsState extends State<CategoryChips> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? category['color'] as Color : Colors.grey,
+                      color: isSelected
+                          ? category['color'] as Color
+                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.62),
                     ),
                     textAlign: TextAlign.center,
                     maxLines: 1,

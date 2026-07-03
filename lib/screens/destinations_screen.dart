@@ -1,10 +1,17 @@
-// screens/destinations_screen.dart - COMPLETE FILE
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/destination_model.dart';
 import '../providers/destination_provider.dart';
 import '../widgets/destination_card.dart';
 import '../widgets/search_widget.dart';
+import '../l10n/app_localizations.dart';
+
+class _CategoryOption {
+  final String name;
+  final IconData icon;
+
+  const _CategoryOption(this.name, this.icon);
+}
 
 class DestinationsScreen extends StatefulWidget {
   const DestinationsScreen({super.key});
@@ -14,8 +21,17 @@ class DestinationsScreen extends StatefulWidget {
 }
 
 class _DestinationsScreenState extends State<DestinationsScreen> {
-  final TextEditingController _searchController = TextEditingController();
+  static const List<_CategoryOption> _categories = [
+    _CategoryOption('All', Icons.all_inclusive),
+    _CategoryOption('Beach', Icons.beach_access),
+    _CategoryOption('Mountain', Icons.landscape),
+    _CategoryOption('City', Icons.location_city),
+    _CategoryOption('Historical', Icons.castle),
+    _CategoryOption('Adventure', Icons.hiking),
+  ];
+
   String _selectedCategory = 'All';
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -31,32 +47,39 @@ class _DestinationsScreenState extends State<DestinationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     final destinationProvider = context.watch<DestinationProvider>();
 
     List<Destination> filteredDestinations = _selectedCategory == 'All'
         ? destinationProvider.destinations
         : destinationProvider.getDestinationsByCategory(_selectedCategory);
 
-    if (_searchController.text.isNotEmpty) {
-      filteredDestinations = destinationProvider.searchDestinations(_searchController.text);
+    if (_searchQuery.trim().isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      filteredDestinations = filteredDestinations.where((destination) {
+        return destination.name.toLowerCase().contains(query) ||
+            destination.location.toLowerCase().contains(query) ||
+            destination.description.toLowerCase().contains(query);
+      }).toList();
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Explore Destinations'),
+        title: Text(localizations.exploreDestinations),
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // Search Bar — add top offset so it's never covered by a transparent AppBar
             Padding(
-              padding: EdgeInsets.fromLTRB(
-                16,
-                MediaQuery.of(context).padding.top + kToolbarHeight + 8,
-                16,
-                0,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: SearchWidget(
+                hintText: localizations.searchDestinations,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
               ),
-              child: const SearchWidget(),
             ),
             
             // Category Filter
@@ -65,14 +88,9 @@ class _DestinationsScreenState extends State<DestinationsScreen> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _buildCategoryChip('All', Icons.all_inclusive),
-                  _buildCategoryChip('Beach', Icons.beach_access),
-                  _buildCategoryChip('Mountain', Icons.landscape),
-                  _buildCategoryChip('City', Icons.location_city),
-                  _buildCategoryChip('Historical', Icons.castle),
-                  _buildCategoryChip('Adventure', Icons.hiking),
-                ],
+                children: _categories
+                    .map((category) => _buildCategoryChip(category.name, category.icon))
+                    .toList(),
               ),
             ),
             
@@ -84,7 +102,7 @@ class _DestinationsScreenState extends State<DestinationsScreen> {
               child: Row(
                 children: [
                   Text(
-                    '${filteredDestinations.length} destinations found',
+                    '${filteredDestinations.length} ${localizations.destinationsFound}',
                     style: TextStyle(
                       color: Colors.grey.shade600,
                       fontSize: 14,
@@ -101,43 +119,53 @@ class _DestinationsScreenState extends State<DestinationsScreen> {
               child: destinationProvider.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : filteredDestinations.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.search_off, size: 64, color: Colors.grey),
-                              SizedBox(height: 16),
+                              const Icon(Icons.search_off, size: 64, color: Colors.grey),
+                              const SizedBox(height: 16),
                               Text(
-                                'No destinations found',
-                                style: TextStyle(fontSize: 18, color: Colors.grey),
+                                localizations.noDestinationsFound,
+                                style: const TextStyle(fontSize: 18, color: Colors.grey),
                               ),
-                              SizedBox(height: 8),
+                              const SizedBox(height: 8),
                               Text(
-                                'Try adjusting your search or filters',
-                                style: TextStyle(color: Colors.grey),
+                                localizations.tryAdjustingSearch,
+                                style: const TextStyle(color: Colors.grey),
                               ),
                             ],
                           ),
                         )
-                      : GridView.builder(
-                          padding: const EdgeInsets.all(16),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 0.75,
-                          ),
-                          itemCount: filteredDestinations.length,
-                          itemBuilder: (context, index) {
-                            return DestinationCard(destination: filteredDestinations[index]);
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            final width = constraints.maxWidth;
+                            final crossAxisCount =
+                                width >= 1100 ? 4 : (width >= 700 ? 3 : 2);
+
+                            return GridView.builder(
+                              padding: const EdgeInsets.all(16),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                childAspectRatio: width >= 700 ? 0.78 : 0.75,
+                              ),
+                              itemCount: filteredDestinations.length,
+                              itemBuilder: (context, index) {
+                                return DestinationCard(
+                                  destination: filteredDestinations[index],
+                                );
+                              },
+                            );
                           },
                         ),
             ),
           ],
         ),
-       ),
-     );
-   }
+      ),
+    );
+  }
 
   Widget _buildCategoryChip(String category, IconData icon) {
     final isSelected = _selectedCategory == category;
@@ -164,9 +192,4 @@ class _DestinationsScreenState extends State<DestinationsScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
 }

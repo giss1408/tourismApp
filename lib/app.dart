@@ -1,10 +1,9 @@
-// app.dart - COMPLETE FIXED VERSION
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/home_screen.dart';
-import 'screens/destinations_screen.dart'; // MAKE SURE THIS IMPORT EXISTS
+import 'screens/destinations_screen.dart';
 import 'screens/booking_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/auth_screen.dart';
@@ -77,7 +76,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _screens = [
     const HomeScreen(),
-    DestinationsScreen(), // No const - it's a StatefulWidget
+    const DestinationsScreen(),
     const BookingScreen(),
     const ProfileScreen(),
   ];
@@ -85,6 +84,7 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     final isLargeScreen = MediaQuery.of(context).size.width > 800;
+    final localizations = AppLocalizations.of(context);
 
     if (kIsWeb && isLargeScreen) {
       return Scaffold(
@@ -96,45 +96,63 @@ class _MainNavigationState extends State<MainNavigation> {
                 setState(() => _currentIndex = index);
               },
               labelType: NavigationRailLabelType.all,
-              destinations: const [
+              destinations: [
                 NavigationRailDestination(
-                  icon: Icon(Icons.home),
-                  label: Text('Home'),
+                  icon: const Icon(Icons.home),
+                  label: Text(localizations.home),
                 ),
                 NavigationRailDestination(
-                  icon: Icon(Icons.explore),
-                  label: Text('Explore'),
+                  icon: const Icon(Icons.explore),
+                  label: Text(localizations.explore),
                 ),
                 NavigationRailDestination(
-                  icon: Icon(Icons.bookmark),
-                  label: Text('Bookings'),
+                  icon: const Icon(Icons.bookmark),
+                  label: Text(localizations.bookings),
                 ),
                 NavigationRailDestination(
-                  icon: Icon(Icons.person),
-                  label: Text('Profile'),
+                  icon: const Icon(Icons.person),
+                  label: Text(localizations.profile),
                 ),
               ],
             ),
             const VerticalDivider(thickness: 1, width: 1),
             Expanded(
-              child: _screens[_currentIndex],
+              child: IndexedStack(
+                index: _currentIndex,
+                children: _screens,
+              ),
             ),
           ],
         ),
       );
     } else {
       return Scaffold(
-        body: _screens[_currentIndex],
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _screens,
+        ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _currentIndex,
           onDestinationSelected: (index) {
             setState(() => _currentIndex = index);
           },
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.explore), label: 'Explore'),
-            NavigationDestination(icon: Icon(Icons.bookmark), label: 'Bookings'),
-            NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
+          destinations: [
+            NavigationDestination(
+              icon: const Icon(Icons.home),
+              label: localizations.home,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.explore),
+              label: localizations.explore,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.bookmark),
+              label: localizations.bookings,
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.person),
+              label: localizations.profile,
+            ),
           ],
         ),
       );
