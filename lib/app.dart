@@ -7,10 +7,12 @@ import 'screens/destinations_screen.dart';
 import 'screens/booking_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/auth_screen.dart';
+import 'screens/map_screen.dart';
 import 'theme/app_theme.dart';
 import 'providers/theme_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/language_provider.dart';
+import 'providers/payment_methods_provider.dart';
 import 'l10n/app_localizations.dart';
 
 class TourismApp extends StatelessWidget {
@@ -74,12 +76,38 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const DestinationsScreen(),
-    const BookingScreen(),
-    const ProfileScreen(),
-  ];
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      const HomeScreen(),
+      const DestinationsScreen(),
+      const MapScreen(),
+      const BookingScreen(),
+      Builder(
+        builder: (context) {
+          final paymentMethodsProvider = Provider.of<PaymentMethodsProvider?>(
+            context,
+            listen: false,
+          );
+
+          if (paymentMethodsProvider != null) {
+            return ChangeNotifierProvider<PaymentMethodsProvider>.value(
+              value: paymentMethodsProvider,
+              child: const ProfileScreen(),
+            );
+          }
+
+          return ChangeNotifierProvider<PaymentMethodsProvider>(
+            create: (_) => PaymentMethodsProvider(),
+            child: const ProfileScreen(),
+          );
+        },
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,6 +132,10 @@ class _MainNavigationState extends State<MainNavigation> {
                 NavigationRailDestination(
                   icon: const Icon(Icons.explore),
                   label: Text(localizations.explore),
+                ),
+                const NavigationRailDestination(
+                  icon: Icon(Icons.map_outlined),
+                  label: Text('Map'),
                 ),
                 NavigationRailDestination(
                   icon: const Icon(Icons.bookmark),
@@ -144,6 +176,10 @@ class _MainNavigationState extends State<MainNavigation> {
             NavigationDestination(
               icon: const Icon(Icons.explore),
               label: localizations.explore,
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.map_outlined),
+              label: 'Map',
             ),
             NavigationDestination(
               icon: const Icon(Icons.bookmark),

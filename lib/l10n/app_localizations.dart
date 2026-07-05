@@ -8,7 +8,8 @@ class AppLocalizations {
   AppLocalizations(this.locale);
 
   static AppLocalizations of(BuildContext context) {
-    return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
+    return Localizations.of<AppLocalizations>(context, AppLocalizations)
+        ?? AppLocalizations(const Locale('en'));
   }
 
   static const LocalizationsDelegate<AppLocalizations> delegate =
@@ -93,6 +94,23 @@ class AppLocalizations {
   String get paymentMethods => translate('paymentMethods');
   String get helpSupport => translate('helpSupport');
   String get aboutExploreWorld => translate('aboutExploreWorld');
+  String get aboutActivityDescription => translate('aboutActivityDescription');
+  String get noPaymentMethodsYet => translate('noPaymentMethodsYet');
+  String get defaultLabel => translate('defaultLabel');
+  String get setDefault => translate('setDefault');
+  String get removeMethod => translate('removeMethod');
+  String get addMockPaymentMethod => translate('addMockPaymentMethod');
+  String get tripDetailsTitle => translate('tripDetailsTitle');
+  String get bookingConfirmedTitle => translate('bookingConfirmedTitle');
+  String get referenceLabel => translate('referenceLabel');
+  String get destinationLabel => translate('destinationLabel');
+  String get tripSummaryTitle => translate('tripSummaryTitle');
+  String get totalPaidLabel => translate('totalPaidLabel');
+  String get whatHappensNextTitle => translate('whatHappensNextTitle');
+  String get tripNextStepEmail => translate('tripNextStepEmail');
+  String get tripNextStepReference => translate('tripNextStepReference');
+  String get tripNextStepSupport => translate('tripNextStepSupport');
+  String get doneAction => translate('doneAction');
   String get bookNow => translate('bookNow');
   String get price => translate('price');
   String get rating => translate('rating');
@@ -128,6 +146,33 @@ class AppLocalizations {
   String get editProfile => translate('editProfile');
   String get displayName => translate('displayName');
   String get signInToContinue => translate('signInToContinue');
+  String get requestInfo => translate('requestInfo');
+  String get requestDestinationInfo => translate('requestDestinationInfo');
+  String get questionType => translate('questionType');
+  String get preferredContact => translate('preferredContact');
+  String get emailOrPhoneNumber => translate('emailOrPhoneNumber');
+  String get continueAction => translate('continueAction');
+  String get pleaseEnterPreferredContact =>
+      translate('pleaseEnterPreferredContact');
+  String get availabilityAndDates => translate('availabilityAndDates');
+  String get pricingAndDiscounts => translate('pricingAndDiscounts');
+  String get includedServices => translate('includedServices');
+  String get transportationDetails => translate('transportationDetails');
+  String get cancellationPolicy => translate('cancellationPolicy');
+  String get other => translate('other');
+  String get infoEmailOpened => translate('infoEmailOpened');
+  String get emailAppUnavailable => translate('emailAppUnavailable');
+  String get infoEmailSubjectPrefix => translate('infoEmailSubjectPrefix');
+  String get infoEmailGreeting => translate('infoEmailGreeting');
+  String get infoEmailIntro => translate('infoEmailIntro');
+  String get infoEmailNameLabel => translate('infoEmailNameLabel');
+  String get infoEmailLocationLabel => translate('infoEmailLocationLabel');
+  String get infoEmailPriceLabel => translate('infoEmailPriceLabel');
+  String get infoEmailQuestionTypeLabel => translate('infoEmailQuestionTypeLabel');
+  String get infoEmailPreferredContactLabel =>
+      translate('infoEmailPreferredContactLabel');
+  String get infoEmailClosingRequest => translate('infoEmailClosingRequest');
+  String get infoEmailThanks => translate('infoEmailThanks');
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

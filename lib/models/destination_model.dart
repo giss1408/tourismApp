@@ -12,6 +12,8 @@ class Destination {
   final String category;
   final int availableSpots; // New field
   final double discount; // New field for special offers
+  final double? latitude;
+  final double? longitude;
 
   Destination({
     required this.id,
@@ -26,6 +28,8 @@ class Destination {
     required this.category,
     this.availableSpots = 50, // Default value
     this.discount = 0.0, // Default no discount
+    this.latitude,
+    this.longitude,
   });
 
   // Calculate discounted price
@@ -45,6 +49,27 @@ class Destination {
       category: json['category'],
       availableSpots: json['availableSpots'] ?? 50,
       discount: json['discount']?.toDouble() ?? 0.0,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'location': location,
+      'rating': rating,
+      'price': price,
+      'images': images,
+      'activities': activities,
+      'isFeatured': isFeatured,
+      'category': category,
+      'availableSpots': availableSpots,
+      'discount': discount,
+      'latitude': latitude,
+      'longitude': longitude,
+    };
   }
 }

@@ -1,0 +1,4 @@
+Email	Password
+admin@tourismapp.dev	Admin1234!
+test@example.com	Test1234!
+demo@tourismapp.dev	Demo1234!

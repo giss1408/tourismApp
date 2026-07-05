@@ -1,9 +1,11 @@
 // screens/profile_screen.dart
+import 'package:firebase_auth/firebase_auth.dart' show FirebaseAuth;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/language_provider.dart';
+import '../providers/payment_methods_provider.dart';
 import '../models/user_model.dart';
 import '../l10n/app_localizations.dart';
 
@@ -15,6 +17,7 @@ class ProfileScreen extends StatelessWidget {
     final themeProvider = context.watch<ThemeProvider>();
     final authProvider = context.watch<AuthProvider>();
     final languageProvider = context.watch<LanguageProvider>();
+    final paymentMethodsProvider = context.watch<PaymentMethodsProvider>();
     final user = authProvider.user;
     final localizations = AppLocalizations.of(context);
 
@@ -54,7 +57,12 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 24),
           _buildPreferencesSection(context, themeProvider, languageProvider, localizations),
           const SizedBox(height: 24),
-          _buildAccountSection(context, authProvider, localizations),
+          _buildAccountSection(
+            context,
+            authProvider,
+            paymentMethodsProvider,
+            localizations,
+          ),
         ],
       ),
     );
@@ -152,11 +160,7 @@ class ProfileScreen extends StatelessWidget {
               backgroundColor: Colors.blue.shade100,
               backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
               child: user.photoURL == null
-                  ? Icon(
-                      Icons.person,
-                      size: 40,
-                      color: Colors.blue.shade600,
-                    )
+                  ? Icon(Icons.person, size: 40, color: Colors.blue.shade600)
                   : null,
             ),
             const SizedBox(width: 16),
@@ -404,7 +408,12 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAccountSection(BuildContext context, AuthProvider authProvider, AppLocalizations localizations) {
+  Widget _buildAccountSection(
+    BuildContext context,
+    AuthProvider authProvider,
+    PaymentMethodsProvider paymentMethodsProvider,
+    AppLocalizations localizations,
+  ) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -434,7 +443,11 @@ class ProfileScreen extends StatelessWidget {
               title: Text(localizations.paymentMethods),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                // TODO: Navigate to payment methods
+                _showPaymentMethodsSheet(
+                  context,
+                  paymentMethodsProvider,
+                  localizations,
+                );
               },
             ),
             ListTile(
@@ -450,7 +463,7 @@ class ProfileScreen extends StatelessWidget {
               title: Text(localizations.aboutExploreWorld),
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
-                // TODO: Navigate to about
+                _showAboutDialog(context, localizations);
               },
             ),
             const SizedBox(height: 8),
@@ -473,6 +486,116 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _showPaymentMethodsSheet(
+    BuildContext context,
+    PaymentMethodsProvider paymentMethodsProvider,
+    AppLocalizations localizations,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        return Consumer<PaymentMethodsProvider>(
+          builder: (context, methodsProvider, _) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    localizations.paymentMethods,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (!methodsProvider.isLoaded)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (methodsProvider.methods.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text(localizations.noPaymentMethodsYet),
+                    )
+                  else
+                    ...methodsProvider.methods.map(
+                      (method) => Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.blue.shade50,
+                            child: Icon(
+                              Icons.credit_card,
+                              color: Colors.blue.shade700,
+                            ),
+                          ),
+                          title: Text(method.maskedLabel),
+                          subtitle: Text('${method.holderName} • ${method.expiryLabel}'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (method.isDefault)
+                                Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.shade100,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    localizations.defaultLabel,
+                                    style: TextStyle(
+                                      color: Colors.green.shade800,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                )
+                              else
+                                IconButton(
+                                  icon: const Icon(Icons.check_circle_outline),
+                                  tooltip: localizations.setDefault,
+                                  onPressed: () {
+                                    methodsProvider.setDefault(method.id);
+                                  },
+                                ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline),
+                                tooltip: localizations.removeMethod,
+                                onPressed: () {
+                                  methodsProvider.removeMethod(method.id);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        methodsProvider.addMockMethod();
+                      },
+                      icon: const Icon(Icons.add),
+                      label: Text(localizations.addMockPaymentMethod),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -605,55 +728,238 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  void _showEditProfileDialog(BuildContext context, AppUser user, AppLocalizations localizations) {
-    final nameController = TextEditingController(text: user.displayName);
-    
+  void _showAboutDialog(BuildContext context, AppLocalizations localizations) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(localizations.editProfile),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.blue.shade100,
-              backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
-              child: user.photoURL == null
-                  ? Icon(
-                      Icons.person,
-                      size: 40,
-                      color: Colors.blue.shade600,
-                    )
-                  : null,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: nameController,
-              decoration: InputDecoration(
-                labelText: localizations.displayName,
-                border: const OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
+        title: Text(localizations.aboutExploreWorld),
+        content: Text(localizations.aboutActivityDescription),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(localizations.cancel),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditProfileDialog(BuildContext context, AppUser user, AppLocalizations localizations) {
+    final nameController = TextEditingController(text: user.displayName);
+    final authProvider = context.read<AuthProvider>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(localizations.editProfile),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar
+              Center(
+                child: CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.blue.shade100,
+                  backgroundImage:
+                      user.photoURL != null ? NetworkImage(user.photoURL!) : null,
+                  child: user.photoURL == null
+                      ? Icon(Icons.person, size: 40, color: Colors.blue.shade600)
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Display name
+              TextFormField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: localizations.displayName,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Email verification banner (only for unverified email accounts)
+              if (user.provider != 'google.com' &&
+                  user.provider != 'facebook.com')
+                _EmailVerificationBanner(authProvider: authProvider),
+              const SizedBox(height: 4),
+              // Change password link (only for email accounts)
+              if (user.provider != 'google.com' &&
+                  user.provider != 'facebook.com')
+                TextButton.icon(
+                  icon: const Icon(Icons.lock_outline, size: 18),
+                  label: const Text('Change password'),
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                    _showChangePasswordDialog(context, authProvider);
+                  },
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(localizations.cancel),
+          ),
           ElevatedButton(
-            onPressed: () {
-              // TODO: Implement profile update
-              Navigator.pop(context);
+            onPressed: () async {
+              final newName = nameController.text.trim();
+              if (newName.isEmpty) return;
+              final success = await authProvider.updateDisplayName(newName);
+              if (!dialogContext.mounted) return;
+              Navigator.pop(dialogContext);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('${localizations.profile} ${localizations.save.toLowerCase()}!'),
-                  backgroundColor: Colors.green,
+                  content: Text(success
+                      ? 'Display name updated.'
+                      : authProvider.error),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: success ? null : Colors.red,
                 ),
               );
             },
             child: Text(localizations.save),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog(
+    BuildContext context,
+    AuthProvider authProvider,
+  ) {
+    final currentController = TextEditingController();
+    final newController = TextEditingController();
+    final confirmController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Change password'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: currentController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Current password',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) =>
+                    (v == null || v.isEmpty) ? 'Required' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: newController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'New password',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => (v == null || v.length < 6)
+                    ? 'Minimum 6 characters'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: confirmController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm new password',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => v != newController.text
+                    ? 'Passwords do not match'
+                    : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              final success = await authProvider.changePassword(
+                currentController.text,
+                newController.text,
+              );
+              if (!dialogContext.mounted) return;
+              Navigator.pop(dialogContext);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(success
+                      ? 'Password updated successfully.'
+                      : authProvider.error),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: success ? null : Colors.red,
+                ),
+              );
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmailVerificationBanner extends StatelessWidget {
+  final AuthProvider authProvider;
+  const _EmailVerificationBanner({required this.authProvider});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.emailVerified) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Email not verified.',
+              style: TextStyle(color: Colors.orange.shade800, fontSize: 12),
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () async {
+              final ok = await authProvider.sendEmailVerification();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(ok
+                        ? 'Verification email sent.'
+                        : authProvider.error),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: const Text('Send', style: TextStyle(fontSize: 12)),
           ),
         ],
       ),

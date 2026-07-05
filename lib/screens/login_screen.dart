@@ -226,10 +226,11 @@ class _LoginScreenState extends State<LoginScreen> {
   void _showForgotPasswordDialog() {
     final emailController = TextEditingController();
     final colorScheme = Theme.of(context).colorScheme;
+    final messenger = ScaffoldMessenger.of(context);
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Reset Password'),
         content: TextFormField(
           controller: emailController,
@@ -241,22 +242,24 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
-              final authProvider = context.read<AuthProvider>();
+              final authProvider = dialogContext.read<AuthProvider>();
               final success = await authProvider.resetPassword(emailController.text.trim());
-              if (success && mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
+              if (!dialogContext.mounted || !success) {
+                return;
+              }
+
+              Navigator.pop(dialogContext);
+              messenger.showSnackBar(
                   SnackBar(
-                    content: Text('Password reset email sent!'),
+                    content: const Text('Password reset email sent!'),
                     backgroundColor: colorScheme.tertiary,
                   ),
                 );
-              }
             },
             child: const Text('Send'),
           ),

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/destination_model.dart';
+import '../providers/favorites_provider.dart';
 import '../screens/destination_detail_screen.dart';
+import '../utils/responsive_layout.dart';
 import 'booking_dialog.dart';
+import 'optimized_network_image.dart';
 
 class FeaturedDestinations extends StatelessWidget {
   final List<Destination> destinations;
@@ -22,10 +26,15 @@ class FeaturedDestinations extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             physics: const BouncingScrollPhysics(),
+            addAutomaticKeepAlives: true,
+            addRepaintBoundaries: true,
             itemCount: destinations.length,
             itemBuilder: (context, index) {
               final destination = destinations[index];
-              return _FeaturedDestinationCard(destination: destination);
+              return _FeaturedDestinationCard(
+                key: ValueKey<String>('featured-${destination.id}'),
+                destination: destination,
+              );
             },
           ),
         ),
@@ -37,13 +46,15 @@ class FeaturedDestinations extends StatelessWidget {
 class _FeaturedDestinationCard extends StatelessWidget {
   final Destination destination;
 
-  const _FeaturedDestinationCard({required this.destination});
+  const _FeaturedDestinationCard({super.key, required this.destination});
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
     final colorScheme = Theme.of(context).colorScheme;
-    final cardWidth = screenWidth > 800 ? 280.0 : 220.0;
+    final isFavorite = context.select<FavoritesProvider, bool>(
+      (provider) => provider.isFavorite(destination.id),
+    );
+    final cardWidth = ResponsiveLayout.featuredCardWidth(context);
     
     return GestureDetector(
       onTap: () {
@@ -65,17 +76,11 @@ class _FeaturedDestinationCard extends StatelessWidget {
               // Background Image
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child: Image.network(
-                  destination.images.first,
+                child: OptimizedNetworkImage(
+                  imageUrl: destination.images.first,
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: double.infinity,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.photo, size: 50, color: Colors.grey),
-                    );
-                  },
                 ),
               ),
               
@@ -199,8 +204,8 @@ class _FeaturedDestinationCard extends StatelessWidget {
                               Icon(Icons.arrow_forward, color: Colors.white, size: 12),
                             ],
                           ),
-                        ),
-                      ),
+                            ),
+                          ),
                     ),
                   ],
                 ),
@@ -218,9 +223,15 @@ class _FeaturedDestinationCard extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.favorite_border, size: 18),
-                    onPressed: () {
-                      // TODO: Implement favorite functionality
+                    icon: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      size: 18,
+                      color: isFavorite ? colorScheme.error : colorScheme.onSurface,
+                    ),
+                    onPressed: () async {
+                      await context.read<FavoritesProvider>().toggleFavorite(
+                        destination.id,
+                      );
                     },
                   ),
                 ),

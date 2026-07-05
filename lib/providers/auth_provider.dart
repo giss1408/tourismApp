@@ -1,12 +1,19 @@
-// providers/auth_provider.dart - Fix Facebook login for version 7.1.0
-import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode, ChangeNotifier, debugPrint;
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show ChangeNotifier, kDebugMode, debugPrint;
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/user_model.dart';
+import '../repositories/auth_repository.dart';
+import '../repositories/firebase_auth_repository.dart';
+import '../services/graph_ql_auth_session.dart';
+import '../services/graphql_service.dart';
 
 class AuthProvider with ChangeNotifier {
+  final AuthRepository _repository;
+  StreamSubscription<AppUser?>? _authSubscription;
+  StreamSubscription<String>? _sessionSubscription;
+
   AppUser? _user;
   bool _isLoading = false;
   String _error = '';
@@ -16,16 +23,27 @@ class AuthProvider with ChangeNotifier {
   String get error => _error;
   bool get isLoggedIn => _user != null;
 
-  AuthProvider() {
+  AuthProvider({AuthRepository? repository})
+      : _repository = repository ?? const FirebaseAuthRepository() {
     _initializeAuth();
+    _initializeSessionEvents();
+  }
+
+  void _initializeSessionEvents() {
+    _sessionSubscription = GraphQlService.unauthorizedEvents.listen((_) async {
+      _user = null;
+      _error = 'Session expired. Please sign in again.';
+      GraphQlAuthSession.clear();
+      await _clearUserFromPrefs();
+      notifyListeners();
+    });
   }
 
   Future<void> _initializeAuth() async {
     try {
-      // Listen to auth state changes
-      FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      _authSubscription = _repository.authStateChanges().listen((user) {
         if (user != null) {
-          _user = AppUser.fromFirebase(user);
+          _user = user;
           _saveUserToPrefs();
         } else {
           _user = null;
@@ -42,10 +60,8 @@ class AuthProvider with ChangeNotifier {
   Future<void> _saveUserToPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     if (_user != null) {
+      // Persist only a minimal marker; avoid storing profile PII in plaintext prefs.
       await prefs.setString('user_uid', _user!.uid);
-      await prefs.setString('user_email', _user!.email ?? '');
-      await prefs.setString('user_displayName', _user!.displayName ?? '');
-      await prefs.setString('user_photoURL', _user!.photoURL ?? '');
     }
   }
 
@@ -64,32 +80,14 @@ class AuthProvider with ChangeNotifier {
       _error = '';
       notifyListeners();
 
-      // DEV bypass: create a local dummy user in debug mode
-      if (kDebugMode) {
-        _user = AppUser(
-          uid: 'dev_user',
-          email: email,
-          displayName: displayName,
-          photoURL: null,
-        );
-        await _saveUserToPrefs();
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
-
-      final UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(email: email, password: password);
-
-      // Update display name
-      await userCredential.user!.updateDisplayName(displayName);
-      
+      _user = await _repository.signUpWithEmail(email, password, displayName);
+      await _saveUserToPrefs();
       _isLoading = false;
       notifyListeners();
       return true;
-    } on FirebaseAuthException catch (e) {
+    } on AuthFailure catch (e) {
       _isLoading = false;
-      _error = _getAuthErrorMessage(e);
+      _error = e.message;
       notifyListeners();
       return false;
     } catch (e) {
@@ -107,29 +105,15 @@ class AuthProvider with ChangeNotifier {
       _error = '';
       notifyListeners();
 
-      // DEV bypass: sign in locally in debug mode
-      if (kDebugMode) {
-        _user = AppUser(
-          uid: 'dev_user',
-          email: email,
-          displayName: 'Dev User',
-          photoURL: null,
-        );
-        await _saveUserToPrefs();
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
-      
-      await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: email, password: password);
+      _user = await _repository.signInWithEmail(email, password);
+      await _saveUserToPrefs();
       
       _isLoading = false;
       notifyListeners();
       return true;
-    } on FirebaseAuthException catch (e) {
+    } on AuthFailure catch (e) {
       _isLoading = false;
-      _error = _getAuthErrorMessage(e);
+      _error = e.message;
       notifyListeners();
       return false;
     } catch (e) {
@@ -140,156 +124,69 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Google Sign In
   Future<bool> signInWithGoogle() async {
     try {
       _isLoading = true;
       _error = '';
       notifyListeners();
-
-      // DEV bypass for web/mobile in debug mode
-      if (kDebugMode) {
-        _user = AppUser(
-          uid: 'dev_google',
-          email: 'dev_google@example.com',
-          displayName: 'Dev Google',
-          photoURL: null,
-        );
-        await _saveUserToPrefs();
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
-
-      if (kIsWeb) {
-        final provider = GoogleAuthProvider();
-        final UserCredential cred = await FirebaseAuth.instance.signInWithPopup(provider);
-        final firebaseUser = cred.user;
-        if (firebaseUser != null) {
-          _user = AppUser.fromFirebase(firebaseUser); // or construct as before
-          await _saveUserToPrefs();
-          _isLoading = false;
-          notifyListeners();
-          return true;
-        }
-        _isLoading = false;
-        _error = 'Google sign-in failed: no user returned';
-        notifyListeners();
-        return false;
-      } else {
-        // mobile/desktop path using google_sign_in package
-        final googleSignIn = GoogleSignIn(
-          clientId: kIsWeb
-              ? '122218319110-k53aan9f4qbof5a3rp43501v7eq9g7ei.apps.googleusercontent.com'
-              : null,
-          scopes: ['email', 'profile'],
-        );
-        final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-        if (googleUser == null) {
-          _isLoading = false;
-          notifyListeners();
-          return false;
-        }
-        final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-        final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-        final UserCredential cred = await FirebaseAuth.instance.signInWithCredential(credential);
-        final firebaseUser = cred.user;
-        if (firebaseUser != null) {
-          _user = AppUser(
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-          );
-          await _saveUserToPrefs();
-          _isLoading = false;
-          notifyListeners();
-          return true;
-        } else {
-          _isLoading = false;
-          _error = 'Google sign-in failed';
-          notifyListeners();
-          return false;
-        }
-      }
-    } on FirebaseAuthException catch (e, st) {
-      debugPrint('Google signIn FirebaseAuthException: ${e.code} / ${e.message}\n$st');
+      _user = await _repository.signInWithGoogle();
+      await _saveUserToPrefs();
       _isLoading = false;
-      _error = e.message ?? 'FirebaseAuthException: ${e.code}';
+      notifyListeners();
+      return true;
+    } on AuthFailure catch (e) {
+      _isLoading = false;
+      _error = e.message;
       notifyListeners();
       return false;
     } catch (e, st) {
-      debugPrint('Google signIn error: $e\n$st');
       _isLoading = false;
       _error = e.toString();
+      if (kDebugMode) {
+        debugPrint('[AuthProvider] signInWithGoogle error: $e');
+        debugPrint('[AuthProvider] signInWithGoogle trace: $st');
+      }
       notifyListeners();
       return false;
     }
   }
 
-  // Facebook Sign In - FIXED for various flutter_facebook_auth/web shapes
   Future<bool> signInWithFacebook() async {
     try {
       _isLoading = true;
       _error = '';
       notifyListeners();
-
-      final LoginResult result = await FacebookAuth.instance.login();
-      if (result.status == LoginStatus.success) {
-        // accessToken shape varies across platforms/versions.
-        // Use dynamic lookup to avoid compile-time getter errors.
-        final access = result.accessToken;
-        final dyn = access as dynamic?;
-        final String? token = dyn == null
-            ? null
-            : (dyn.tokenString ?? dyn.token ?? dyn.accessToken ?? dyn.value) as String?;
-
-        if (token != null) {
-          final OAuthCredential credential = FacebookAuthProvider.credential(token);
-          await FirebaseAuth.instance.signInWithCredential(credential);
-
-          _isLoading = false;
-          notifyListeners();
-          return true;
-        } else {
-          _isLoading = false;
-          _error = 'Failed to get Facebook access token';
-          notifyListeners();
-          return false;
-        }
-      } else {
-        _isLoading = false;
-        _error = 'Facebook login cancelled';
-        notifyListeners();
-        return false;
-      }
-    } on FirebaseAuthException catch (e, st) {
-      debugPrint('Facebook signIn FirebaseAuthException: ${e.code} / ${e.message}\n$st');
+      _user = await _repository.signInWithFacebook();
+      await _saveUserToPrefs();
       _isLoading = false;
-      _error = e.message ?? 'FirebaseAuthException: ${e.code}';
+      notifyListeners();
+      return true;
+    } on AuthFailure catch (e) {
+      _isLoading = false;
+      _error = e.message;
       notifyListeners();
       return false;
     } catch (e, st) {
-      debugPrint('Facebook signIn error: $e\n$st');
       _isLoading = false;
       _error = e.toString();
+      if (kDebugMode) {
+        debugPrint('[AuthProvider] signInWithFacebook error: $e');
+        debugPrint('[AuthProvider] signInWithFacebook trace: $st');
+      }
       notifyListeners();
       return false;
     }
   }
 
-  // Sign Out
   Future<void> signOut() async {
     try {
       _isLoading = true;
       notifyListeners();
 
-      await FirebaseAuth.instance.signOut();
-      await GoogleSignIn().signOut();
-      await FacebookAuth.instance.logOut();
+      await _repository.signOut();
+      GraphQlAuthSession.clear();
+      _user = null;
+      await _clearUserFromPrefs();
       
       _isLoading = false;
       notifyListeners();
@@ -300,21 +197,20 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Reset Password
   Future<bool> resetPassword(String email) async {
     try {
       _isLoading = true;
       _error = '';
       notifyListeners();
 
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      await _repository.resetPassword(email);
       
       _isLoading = false;
       notifyListeners();
       return true;
-    } on FirebaseAuthException catch (e) {
+    } on AuthFailure catch (e) {
       _isLoading = false;
-      _error = _getAuthErrorMessage(e);
+      _error = e.message;
       notifyListeners();
       return false;
     } catch (e) {
@@ -325,31 +221,75 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  String _getAuthErrorMessage(FirebaseAuthException e) {
-    switch (e.code) {
-      case 'email-already-in-use':
-        return 'This email is already registered.';
-      case 'invalid-email':
-        return 'Please enter a valid email address.';
-      case 'operation-not-allowed':
-        return 'Email/password accounts are not enabled.';
-      case 'weak-password':
-        return 'Password is too weak.';
-      case 'user-disabled':
-        return 'This account has been disabled.';
-      case 'user-not-found':
-        return 'No account found with this email.';
-      case 'wrong-password':
-        return 'Incorrect password.';
-      case 'too-many-requests':
-        return 'Too many attempts. Please try again later.';
-      default:
-        return 'Authentication failed: ${e.message}';
+  Future<bool> updateDisplayName(String displayName) async {
+    if (displayName.trim().isEmpty) return false;
+    try {
+      await _repository.updateDisplayName(displayName.trim());
+      if (_user != null) {
+        _user = AppUser(
+          uid: _user!.uid,
+          email: _user!.email,
+          displayName: displayName.trim(),
+          photoURL: _user!.photoURL,
+          provider: _user!.provider,
+          createdAt: _user!.createdAt,
+        );
+      }
+      notifyListeners();
+      return true;
+    } on AuthFailure catch (e) {
+      _error = e.message;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> sendEmailVerification() async {
+    try {
+      await _repository.sendEmailVerification();
+      return true;
+    } on AuthFailure catch (e) {
+      _error = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> changePassword(String currentPassword, String newPassword) async {
+    try {
+      _isLoading = true;
+      _error = '';
+      notifyListeners();
+      await _repository.changePassword(currentPassword, newPassword);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on AuthFailure catch (e) {
+      _isLoading = false;
+      _error = e.message;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _isLoading = false;
+      _error = e.toString();
+      notifyListeners();
+      return false;
     }
   }
 
   void clearError() {
     _error = '';
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    _sessionSubscription?.cancel();
+    super.dispose();
   }
 }

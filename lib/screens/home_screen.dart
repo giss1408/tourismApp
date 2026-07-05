@@ -1,28 +1,100 @@
 // screens/home_screen.dart - UPDATE WITH TRANSLATIONS
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/destination_model.dart';
+import '../services/image_prefetch_service.dart';
+import '../services/analytics_service.dart';
+import '../utils/responsive_layout.dart';
 import '../widgets/destination_card.dart';
 import '../widgets/featured_destinations.dart';
+import '../widgets/loading_destination_card.dart';
+import '../widgets/optimized_network_image.dart';
 import '../widgets/search_widget.dart';
 import '../widgets/category_chips.dart';
 import '../providers/destination_provider.dart';
+import '../providers/personalization_provider.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  DestinationProvider? _destinationProvider;
+  bool _hasTrackedListViewed = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = context.read<DestinationProvider>();
+    if (!identical(_destinationProvider, provider)) {
+      _destinationProvider?.removeListener(_onDestinationProviderChanged);
+      _destinationProvider = provider;
+      _destinationProvider?.addListener(_onDestinationProviderChanged);
+      _onDestinationProviderChanged();
+    }
+  }
+
+  @override
+  void dispose() {
+    _destinationProvider?.removeListener(_onDestinationProviderChanged);
+    super.dispose();
+  }
+
+  void _onDestinationProviderChanged() {
+    final provider = _destinationProvider;
+    if (!mounted || provider == null) {
+      return;
+    }
+
+    if (!_hasTrackedListViewed && provider.destinations.isNotEmpty) {
+      _hasTrackedListViewed = true;
+      context.read<AnalyticsService>().trackEvent(
+        'destination_list_viewed',
+        properties: <String, Object?>{
+          'destination_count': provider.destinations.length,
+          'featured_count': provider.featuredDestinations.length,
+        },
+      );
+    }
+
+    ImagePrefetchService.prefetchDestinations(
+      context,
+      provider.destinations,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final destinationProvider = context.watch<DestinationProvider>();
+    final destinations = context.select<DestinationProvider, List<Destination>>(
+      (provider) => provider.destinations,
+    );
+    final featuredDestinations =
+        context.select<DestinationProvider, List<Destination>>(
+      (provider) => provider.featuredDestinations,
+    );
+    final isLoading = context.select<DestinationProvider, bool>(
+      (provider) => provider.isLoading,
+    );
+    final personalizationProvider = context.watch<PersonalizationProvider>();
     final size = MediaQuery.of(context).size;
     final localizations = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final heroHeight = (size.height * 0.21).clamp(170.0, 220.0);
+    final personalized = personalizationProvider.recommendations(
+      destinations,
+      limit: 6,
+    );
 
     return Scaffold(
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
+      body: RefreshIndicator(
+        onRefresh: () => context.read<DestinationProvider>().loadDestinations(),
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
         slivers: [
           // Compact hero header
           SliverAppBar(
@@ -182,7 +254,13 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ),
                       onPressed: () {
-                        _showSpecialOffers(context, destinationProvider);
+                        context.read<AnalyticsService>().trackEvent(
+                          'special_offers_opened',
+                          properties: <String, Object?>{
+                            'destination_count': destinations.length,
+                          },
+                        );
+                        _showSpecialOffers(context, destinations);
                       },
                     ),
                   ],
@@ -192,7 +270,46 @@ class HomeScreen extends StatelessWidget {
           ),
 
           // Featured Destinations Section
-          if (destinationProvider.featuredDestinations.isNotEmpty)
+          if (personalized.isNotEmpty)
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 2),
+            ),
+
+          if (personalized.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'For You',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Based on your recently viewed places, categories, and budget.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          if (personalized.isNotEmpty)
+            SliverToBoxAdapter(
+              child: FeaturedDestinations(
+                destinations: personalized,
+              ),
+            ),
+
+          if (featuredDestinations.isNotEmpty)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
@@ -219,19 +336,14 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
 
-          if (destinationProvider.isLoading)
+          if (isLoading)
             const SliverToBoxAdapter(
-              child: Center(
-                child: Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: CircularProgressIndicator(),
-                ),
-              ),
+              child: _LoadingFeaturedDestinations(),
             )
-          else if (destinationProvider.featuredDestinations.isNotEmpty)
+          else if (featuredDestinations.isNotEmpty)
             SliverToBoxAdapter(
               child: FeaturedDestinations(
-                destinations: destinationProvider.featuredDestinations,
+                destinations: featuredDestinations,
               ),
             ),
 
@@ -263,24 +375,33 @@ class HomeScreen extends StatelessWidget {
           ),
 
           // All Destinations Grid
-          if (!destinationProvider.isLoading)
+          if (!isLoading)
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               sliver: SliverGrid(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: MediaQuery.of(context).size.width > 800 ? 4 : 2,
+                  crossAxisCount: ResponsiveLayout.destinationGridCount(context),
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
                   childAspectRatio: 0.75,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final destination = destinationProvider.destinations[index];
-                    return DestinationCard(destination: destination);
+                    final destination = destinations[index];
+                    return DestinationCard(
+                      key: ValueKey<String>('destination-${destination.id}'),
+                      destination: destination,
+                    );
                   },
-                  childCount: destinationProvider.destinations.length,
+                  childCount: destinations.length,
                 ),
               ),
+            ),
+
+          if (isLoading)
+            const SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              sliver: _LoadingDestinationsGrid(),
             ),
 
           const SliverToBoxAdapter(
@@ -288,13 +409,14 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
   }
 
-  void _showSpecialOffers(BuildContext context, DestinationProvider destinationProvider) {
+  void _showSpecialOffers(BuildContext context, List<Destination> destinations) {
     final localizations = AppLocalizations.of(context);
     final colorScheme = Theme.of(context).colorScheme;
-    final discountedDestinations = destinationProvider.destinations
+    final discountedDestinations = destinations
         .where((destination) => destination.discount > 0)
         .toList();
 
@@ -387,8 +509,8 @@ class HomeScreen extends StatelessWidget {
                           child: ListTile(
                             leading: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                destination.images.first,
+                              child: OptimizedNetworkImage(
+                                imageUrl: destination.images.first,
                                 width: 60,
                                 height: 60,
                                 fit: BoxFit.cover,
@@ -412,7 +534,7 @@ class HomeScreen extends StatelessWidget {
                                 ),
                                 Text(
                                   '\$${destination.price.toInt()}',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey,
                                     decoration: TextDecoration.lineThrough,
@@ -430,6 +552,52 @@ class HomeScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _LoadingFeaturedDestinations extends StatelessWidget {
+  const _LoadingFeaturedDestinations();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 280,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: 3,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          return Container(
+            width: ResponsiveLayout.featuredCardWidth(context),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(20),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _LoadingDestinationsGrid extends StatelessWidget {
+  const _LoadingDestinationsGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverGrid(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: ResponsiveLayout.destinationGridCount(context),
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+        childAspectRatio: 0.75,
+      ),
+      delegate: SliverChildBuilderDelegate(
+        (context, index) => const LoadingDestinationCard(),
+        childCount: 6,
       ),
     );
   }

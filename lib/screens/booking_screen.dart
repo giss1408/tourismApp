@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/booking_provider.dart';
+import '../widgets/optimized_network_image.dart';
 
 class BookingScreen extends StatelessWidget {
   const BookingScreen({super.key});
@@ -17,25 +18,25 @@ class BookingScreen extends StatelessWidget {
         elevation: 0,
       ),
       body: bookingProvider.bookings.isEmpty
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.bookmark_border, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
+                  const Icon(Icons.bookmark_border, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text(
                     'No bookings yet',
                     style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
-                  SizedBox(height: 8),
-                  Text(
+                  const SizedBox(height: 8),
+                  const Text(
                     'Start exploring and book your first trip!',
                     style: TextStyle(color: Colors.grey),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: null,
-                    child: Text('Explore Destinations'),
+                    onPressed: () {},
+                    child: const Text('Explore Destinations'),
                   ),
                 ],
               ),
@@ -65,19 +66,11 @@ class BookingScreen extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    booking.destinationImage,
+                  child: OptimizedNetworkImage(
+                    imageUrl: booking.destinationImage,
                     width: 80,
                     height: 80,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 80,
-                        height: 80,
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.photo, color: Colors.grey),
-                      );
-                    },
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -85,6 +78,15 @@ class BookingScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        booking.reference,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
                       Text(
                         booking.destinationName,
                         style: const TextStyle(
@@ -158,7 +160,7 @@ class BookingScreen extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
-                      // TODO: Implement view details
+                      _showBookingDetails(context, booking);
                     },
                     child: const Text('View Details'),
                   ),
@@ -167,13 +169,25 @@ class BookingScreen extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      // TODO: Implement modify booking
+                      _showModifyDialog(context, booking);
                     },
                     child: const Text('Modify'),
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            if (booking.status.toLowerCase() != 'cancelled')
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: () {
+                    context.read<BookingProvider>().cancelBooking(booking.id);
+                  },
+                  icon: const Icon(Icons.cancel_outlined),
+                  label: const Text('Cancel Booking'),
+                ),
+              ),
           ],
         ),
       ),
@@ -217,5 +231,141 @@ class BookingScreen extends StatelessWidget {
       default:
         return Colors.grey;
     }
+  }
+
+  void _showBookingDetails(BuildContext context, Booking booking) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Booking Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Reference: ${booking.reference}'),
+            Text('Status: ${booking.status}'),
+            Text('Destination: ${booking.destinationName}'),
+            Text('Dates: ${_formatDate(booking.checkInDate)} - ${_formatDate(booking.checkOutDate)}'),
+            Text('Guests: ${booking.guests}'),
+            Text('Nights: ${booking.nights}'),
+            Text('Total: \$${booking.totalPrice.toStringAsFixed(2)}'),
+            if (booking.notes.isNotEmpty) Text('Notes: ${booking.notes}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showModifyDialog(BuildContext context, Booking booking) {
+    int guests = booking.guests;
+    DateTime checkIn = booking.checkInDate;
+    DateTime checkOut = booking.checkOutDate;
+
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            final nights = checkOut.difference(checkIn).inDays <= 0
+                ? 1
+                : checkOut.difference(checkIn).inDays;
+            final total = (booking.totalPrice / booking.nights / booking.guests) * nights * guests;
+
+            return AlertDialog(
+              title: const Text('Modify Booking'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Check-in'),
+                    subtitle: Text(_formatDate(checkIn)),
+                    trailing: const Icon(Icons.event),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: checkIn,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 730)),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          checkIn = picked;
+                          if (!checkOut.isAfter(checkIn)) {
+                            checkOut = checkIn.add(const Duration(days: 1));
+                          }
+                        });
+                      }
+                    },
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Check-out'),
+                    subtitle: Text(_formatDate(checkOut)),
+                    trailing: const Icon(Icons.event),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: checkOut,
+                        firstDate: checkIn.add(const Duration(days: 1)),
+                        lastDate: DateTime.now().add(const Duration(days: 730)),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          checkOut = picked;
+                        });
+                      }
+                    },
+                  ),
+                  Row(
+                    children: [
+                      const Text('Guests'),
+                      const Spacer(),
+                      IconButton(
+                        onPressed: guests > 1 ? () => setState(() => guests--) : null,
+                        icon: const Icon(Icons.remove_circle_outline),
+                      ),
+                      Text('$guests'),
+                      IconButton(
+                        onPressed: guests < 10 ? () => setState(() => guests++) : null,
+                        icon: const Icon(Icons.add_circle_outline),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text('Updated total: \$${total.toStringAsFixed(2)}'),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    context.read<BookingProvider>().modifyBooking(
+                          bookingId: booking.id,
+                          checkInDate: checkIn,
+                          checkOutDate: checkOut,
+                          guests: guests,
+                          nights: nights,
+                          totalPrice: total,
+                        );
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 }
