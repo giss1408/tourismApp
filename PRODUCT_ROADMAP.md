@@ -1,132 +1,92 @@
 # Tourism App Product & UX Roadmap
 
-## Priority Features
+---
 
-1. Smart search and filters
-- Multi-filter search by budget, duration, climate, family-friendly, and visa-free options.
-- Sorting by popularity, rating, and price.
+## ✅ Completed
 
-2. Real backend data and caching
-- Replace sample data with Firestore/REST-backed content.
-- Add offline cache and pull-to-refresh.
+### Flutter App
+- Advanced filter/sort UX (budget, duration, category, rating, price)
+- Favorites + saved collections (LocalStorage-persisted, analytics-instrumented)
+- Map exploration screen (flutter_map, destination pins, quick actions)
+- Full booking flow (multi-step setup → review → confirm → Trip Details screen with post-booking info)
+- Destination personalization (recently viewed, category scoring, budget preference)
+- Mock payment methods (add, remove, set default, persisted, localized)
+- Request Info flow (bottom-sheet form, prefilled email, analytics payload)
+- User metrics and analytics (AnalyticsService abstraction, mock + API transport, event hooks across discovery/booking/favorites funnels)
+- Performance and media polish (OptimizedNetworkImage, cache dimension safety, responsive layout helpers, loading skeletons, prefetching)
+- Pull-to-refresh on Home and Destinations screens
+- Firebase Authentication — email/password sign-in and sign-up
+- Firebase Authentication — Google OAuth (real device, requires SHA-1 in Firebase Console)
+- Firebase Authentication — profile edit: update display name, change password, email verification banner
+- Social sign-in backend sync (HybridAuthRepository → Django `socialSignIn` → JWT returned)
+- GraphQL security hardening (HTTPS enforcement, JWT middleware, session lifecycle, token sanitization)
+- Full localization — EN / FR / DE for all screens and new features
+- LAN Android HTTP policy (`network_security_config.xml` allows `http://192.168.178.148`)
+- JSON cache hardening (malformed SharedPreferences payload recovery in all providers)
+- PII reduction (removed email/display name/photo from SharedPreferences; only uid marker persisted)
+- `flutter analyze` — clean (zero issues)
+- Unit + widget test suite — 44 tests
 
-3. Destination personalization
-- Recommendations based on behavior: recently viewed destinations, preferred categories, and budget.
+### Django Backend
+- Django 4.2 + Graphene-Django GraphQL API
+- AppUser model with firebase_uid field for social auth
+- Destinations — seeded with 14 entries matching Flutter mock data, filtered/sorted/paginated query
+- Bookings — authenticated `upsertBookings` mutation + `bookings` query
+- Auth — `signIn`, `signUp`, `signOut`, `resetPassword`, `socialSignIn` mutations with JWT
+- Analytics — `trackAnalyticsEvent` + `setAnalyticsUserProperties` mutations
+- JWT bearer middleware (per-request auth, log once per root resolver)
+- CORS, ALLOWED_HOSTS, LAN IP support
+- Django admin for all models
+- Seed management commands (`seed_destinations`, `seed_users`, `create_admin`)
+- 18 backend tests — all passing
+- `.env`-driven config, `Makefile`, `Dockerfile`, `docker-compose.yml`, `.gitignore`
 
-4. Favorites and collections
-- Save favorites.
-- Organize destinations into custom collections (for example: Summer 2026, Honeymoon, Family).
+---
 
-5. Full booking flow
-- Dates, guests, add-ons, cancellation policy, payment simulation, and confirmation with invoice reference.
+## 🔧 In Progress / Partially Done
 
-6. Map-first exploration
-- Interactive exploration with destination pins and quick detail actions.
+- **Google Sign-In** — works, but requires registering debug SHA-1 (`79:52:3E:1F:ED:75:30:24:3B:70:BC:40:27:7F:EA:DD:4B:71:A9:73`) in Firebase Console + downloading updated `google-services.json`
+- **Facebook Sign-In** — code is in place, shows clear error; needs Facebook App ID registered in `AndroidManifest.xml` + Firebase Console
+- **Offline cache** — pull-to-refresh implemented; persistent offline-first cache not yet added
+- **Currency / date locale depth** — strings are localized (EN/FR/DE) but prices display as `$` and dates are not yet formatted via `NumberFormat.currency` / `DateFormat`
 
-7. Trust layer
-- Verified reviews, safety indicators, and accessibility-friendly metadata.
+---
 
-8. Localization depth
-- Regional currency, date formats, units, and content ranking by locale.
+## 🚀 Flutter App — Next Steps
 
-9. Performance and media polish
-- Image placeholders, prefetching, responsive image sizing, and smoother transitions.
+### Auth & Profile
+1. Profile photo upload — add `image_picker` + `firebase_storage` once Gradle version conflict is resolved; `updateProfilePhoto` stub is already in `AuthRepository`
+2. Account deletion — add Firebase `user.delete()` + backend cleanup mutation
 
-10. Notifications and lifecycle
-- Price-drop alerts, reminder notifications, and itinerary milestones.
+### Data & Offline
+3. Persistent offline cache — cache destinations/bookings to `Hive` or `sqflite`; load from cache first, refresh in background
+4. Real destination data — replace picsum.photos URLs with actual destination images from a CDN or CMS
 
-11. User metrics and analytics
-- Instrument product events across discovery, booking, and retention funnels.
-- Track activation, engagement, conversion, and retention KPIs by locale and acquisition source.
-- Add dashboard-ready definitions for DAU/WAU/MAU, booking conversion, drop-off steps, and repeat-booking rate.
+### UX & Notifications
+5. Push notifications — integrate `firebase_messaging`; implement price-drop and booking-reminder alerts
+6. Currency formatting — use `NumberFormat.currency(locale: locale.toString())` for price display
+7. Date formatting — use `DateFormat` from `intl` package for check-in/check-out dates
 
-## Implemented In This Iteration
+### Trust Layer
+8. Destination reviews — add star rating + text review submission flow; display aggregate rating + review count on detail screen
 
-- Advanced filter/sort UX
-- Favorites + saved collections
-- Map exploration screen
-- Booking flow (multi-step review and confirmation)
+---
 
-## Pre-Backend Readiness Checks
+## 🚀 Django Backend — Next Steps
 
-Use this checklist while backend is pending so product quality keeps moving.
+### Security & Production
+1. Firebase ID token verification — harden `socialSignIn` by verifying the Firebase ID token server-side using `firebase-admin` SDK instead of trusting client-sent uid/email
+2. Rate limiting — add `django-ratelimit` or DRF throttling to the `/graphql/` endpoint
+3. PostgreSQL — swap SQLite for Postgres; update `.env` with `DATABASE_URL`
+4. Production server — replace `runserver` with `gunicorn` behind `nginx`; add SSL termination
 
-### 1. Product Flow Validation
+### Features
+5. Booking status mutations — add `confirmBooking` and `cancelBooking` mutations (currently only `upsertBookings` from the app side)
+6. Destination CRUD API — add `createDestination`, `updateDestination`, `deleteDestination` mutations for admin use
+7. Analytics query endpoint — add `analyticsEvents(from, to, name)` query for dashboard/BI tools
+8. File upload endpoint — add a `uploadFile` mutation or REST endpoint for profile photos and destination images
 
-- Verify core user journeys are complete with mock data:
-	- Discover destinations -> filter/sort -> open details
-	- Favorite/save into collections -> retrieve later
-	- Open map -> inspect pins -> open destination details
-	- Create booking -> review -> confirm -> modify/cancel
-- Confirm every journey has clear empty states, loading states, and error states.
-- Confirm no dead-end screens (every major screen has an obvious next action).
+### DevOps
+9. CI pipeline — add GitHub Actions running `python manage.py test apps` + `flutter test` + `flutter analyze` on every push
+10. Environment config — define `dev` / `staging` / `prod` GraphQL endpoint configs in `.env` variants
 
-### 2. Contract and Data Boundary Validation
-
-- Verify repository contracts are stable:
-	- DestinationRepository
-	- BookingRepository
-	- AuthRepository
-- Verify DTO mapping handles null/missing/malformed payload fields safely.
-- Verify GraphQL query option models are present and tested:
-	- search/filter
-	- sort
-	- pagination
-- Verify mock repositories emulate server-side behavior for filter/sort/pagination.
-
-### 3. Session and Auth Safety
-
-- Verify unauthorized events trigger local session clear and user-visible re-login message.
-- Verify sign-in/sign-out/reset-password states remain consistent across app restart.
-- Verify GraphQL mode and Firebase mode both boot correctly through config toggles.
-
-### 4. UX and Accessibility Quality
-
-- Check small-screen overflow risks on auth, booking, and card-heavy pages.
-- Validate tap target sizes and keyboard/focus behavior for forms.
-- Verify contrast and readability in light and dark themes.
-- Verify empty-state copy is actionable and localized where applicable.
-
-### 5. Performance and Resilience
-
-- Verify no unnecessary repeated loads when switching tabs.
-- Verify map and image-heavy screens remain responsive on lower-end devices.
-- Verify request timeout/retry behavior is user-safe (no infinite spinner loops).
-- Verify startup error screen appears with helpful guidance if config is invalid.
-
-### 6. QA Gate Before Backend Integration
-
-- flutter analyze passes for full project.
-- flutter test passes for full project.
-- Optional GraphQL integration tests can run in CI when endpoint is available.
-- Regression checklist executed for:
-	- navigation
-	- booking state changes
-	- favorites/collections persistence
-	- auth transitions
-
-### 8. User Metrics Validation
-
-- Verify event schema is documented and versioned (event name, required properties, user/session IDs, timestamp).
-- Verify key funnel events are emitted:
-	- destination_list_viewed
-	- destination_opened
-	- booking_started
-	- booking_confirmed
-	- booking_canceled
-	- favorite_added
-- Verify user properties are set safely (locale, preferred currency, app version, platform) with privacy controls.
-- Verify metric definitions are stable and dashboard-ready:
-	- activation rate
-	- destination-to-booking conversion
-	- booking completion rate
-	- D1/D7 retention
-	- repeat-booking rate
-- Verify analytics failures never block user flows (fire-and-forget, retry with backoff, local queue optional).
-
-### 7. Definition of Ready for Backend Cutover
-
-- Backend schema fields aligned to DTOs and query variables.
-- Environment config defined for dev/staging/prod GraphQL endpoints.
-- Error codes and unauthorized behavior agreed between frontend and backend.
-- Sample production-like fixtures available for smoke testing.
