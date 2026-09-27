@@ -5,6 +5,7 @@ import '../providers/favorites_provider.dart';
 import '../screens/destination_detail_screen.dart';
 import 'booking_dialog.dart';
 import 'optimized_network_image.dart';
+import '../utils/money.dart';
 
 class DestinationCard extends StatelessWidget {
   final Destination destination;
@@ -37,12 +38,15 @@ class DestinationCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             // ── Full-bleed background image ───────────────────────────────
-            OptimizedNetworkImage(
-              imageUrl: destination.images.first,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-            ),
+            if (destination.images.isNotEmpty)
+              OptimizedNetworkImage(
+                imageUrl: destination.images.first,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+              )
+            else
+              ColoredBox(color: Theme.of(context).colorScheme.primaryContainer),
 
             // ── Gradient overlay (transparent → dark at bottom) ──────────
             DecoratedBox(
@@ -177,7 +181,7 @@ class DestinationCard extends StatelessWidget {
                         // Price
                         if (hasDiscount)
                           Text(
-                            '\$${destination.price.toInt()}',
+                            Money.eur(context, destination.price),
                             style: const TextStyle(
                               color: Colors.white54,
                               fontSize: 10,
@@ -187,7 +191,7 @@ class DestinationCard extends StatelessWidget {
                           ),
                         if (hasDiscount) const SizedBox(width: 4),
                         Text(
-                          '\$${destination.discountedPrice.toInt()}',
+                          Money.eur(context, destination.discountedPrice),
                           style: TextStyle(
                             color: colorScheme.primaryContainer,
                             fontSize: 13,

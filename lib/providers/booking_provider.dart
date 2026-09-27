@@ -100,7 +100,7 @@ class BookingProvider with ChangeNotifier {
     } catch (e) {
       _bookings.clear();
       _status = BookingDataStatus.error;
-      _error = 'Failed to load bookings: $e';
+      _error = 'Unable to load your bookings. Pull down to try again.';
     }
 
     notifyListeners();
@@ -155,7 +155,6 @@ class BookingProvider with ChangeNotifier {
       nights: nights,
       totalPrice: totalPrice,
       notes: notes,
-      status: 'Confirmed',
     );
     await _persistBookings();
     notifyListeners();

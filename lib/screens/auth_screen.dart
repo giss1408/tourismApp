@@ -54,7 +54,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        'ExploreWorld',
+                        'Akwaba Ivoire',
                         style: TextStyle(
                           fontSize: 32,
                           fontWeight: FontWeight.bold,

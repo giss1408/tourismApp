@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../models/destination_model.dart';
 import '../providers/destination_provider.dart';
 import 'destination_detail_screen.dart';
+import '../utils/money.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -154,7 +155,7 @@ class _MapScreenState extends State<MapScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           trailing: Text(
-                            '\$${destination.discountedPrice.toInt()}',
+                            Money.eur(context, destination.discountedPrice),
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.tertiary,
                               fontWeight: FontWeight.bold,

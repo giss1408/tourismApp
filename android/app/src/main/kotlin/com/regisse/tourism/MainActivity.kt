@@ -1,5 +1,6 @@
 package com.regisse.tourism
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity: FlutterActivity()
+// FlutterFragmentActivity: required by the Stripe payment sheet.
+class MainActivity: FlutterFragmentActivity()

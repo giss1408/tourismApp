@@ -3,6 +3,7 @@ import 'package:explore_world/providers/destination_provider.dart';
 import 'package:explore_world/repositories/destination_repository.dart';
 import 'package:explore_world/repositories/query_options.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeDestinationRepository implements DestinationRepository {
   final List<Destination> destinations;
@@ -64,6 +65,33 @@ void main() {
 
     expect(provider.status, DestinationDataStatus.error);
     expect(provider.destinations, isEmpty);
-    expect(provider.error, contains('Failed to load destinations'));
+    expect(provider.error, contains('Unable to load destinations'));
+  });
+
+  test('DestinationProvider shows the cached catalogue when offline', () async {
+    SharedPreferences.setMockInitialValues({});
+    final online = DestinationProvider(
+      repository: _FakeDestinationRepository(destinations: [
+        Destination(
+          id: '7',
+          name: 'Grand-Bassam',
+          description: 'Plage classée UNESCO',
+          location: "Côte d'Ivoire",
+          rating: 4.8,
+          price: 90,
+          images: const ['img'],
+          activities: const ['plage'],
+          category: 'Beach',
+        ),
+      ]),
+    );
+    await online.loadDestinations();
+
+    final offline = DestinationProvider(repository: _ThrowingDestinationRepository());
+    await offline.loadDestinations();
+
+    expect(offline.status, DestinationDataStatus.success);
+    expect(offline.isOffline, isTrue);
+    expect(offline.destinations.single.name, 'Grand-Bassam');
   });
 }

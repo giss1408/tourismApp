@@ -14,6 +14,10 @@ import 'providers/auth_provider.dart';
 import 'providers/language_provider.dart';
 import 'providers/payment_methods_provider.dart';
 import 'l10n/app_localizations.dart';
+import 'providers/app_settings_provider.dart';
+import 'repositories/travel_repository.dart';
+import 'services/push_service.dart';
+import 'widgets/common/consent_dialog.dart';
 
 class TourismApp extends StatelessWidget {
   const TourismApp({super.key});
@@ -23,16 +27,17 @@ class TourismApp extends StatelessWidget {
     final languageProvider = context.watch<LanguageProvider>();
   
     return MaterialApp(
-      title: 'ExploreWorld',
+      title: 'Akwaba Ivoire',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: context.read<GlobalKey<ScaffoldMessengerState>>(),
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: context.watch<ThemeProvider>().themeMode,
       locale: languageProvider.locale,
       supportedLocales: const [
+        Locale('fr'),
         Locale('en'),
         Locale('de'),
-        Locale('fr'),
       ],
       localizationsDelegates: const [
         AppLocalizations.delegate,
@@ -75,12 +80,34 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
+  String? _syncedLanguage;
+
+  /// Signed-in start-up: consent, push registration, and the operator
+  /// settings and emails in the traveller's language.
+  Future<void> _startSession() async {
+    await showConsentDialogIfNeeded(context);
+    if (!mounted) return;
+    await context.read<PushService>().enable();
+  }
+
+  void _syncLanguage(String language) {
+    if (language == _syncedLanguage) return;
+    _syncedLanguage = language;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<AppSettingsProvider>().load(language);
+      context.read<TravelRepository>().updateLanguage(language).catchError((_) {});
+    });
+  }
 
   late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _startSession();
+    });
     _screens = [
       const HomeScreen(),
       const DestinationsScreen(),
@@ -113,6 +140,7 @@ class _MainNavigationState extends State<MainNavigation> {
   Widget build(BuildContext context) {
     final isLargeScreen = MediaQuery.of(context).size.width > 800;
     final localizations = AppLocalizations.of(context);
+    _syncLanguage(context.watch<LanguageProvider>().locale.languageCode);
 
     if (kIsWeb && isLargeScreen) {
       return Scaffold(
@@ -133,9 +161,9 @@ class _MainNavigationState extends State<MainNavigation> {
                   icon: const Icon(Icons.explore),
                   label: Text(localizations.explore),
                 ),
-                const NavigationRailDestination(
-                  icon: Icon(Icons.map_outlined),
-                  label: Text('Map'),
+                NavigationRailDestination(
+                  icon: const Icon(Icons.map_outlined),
+                  label: Text(localizations.translate('mapTab')),
                 ),
                 NavigationRailDestination(
                   icon: const Icon(Icons.bookmark),
@@ -177,9 +205,9 @@ class _MainNavigationState extends State<MainNavigation> {
               icon: const Icon(Icons.explore),
               label: localizations.explore,
             ),
-            const NavigationDestination(
-              icon: Icon(Icons.map_outlined),
-              label: 'Map',
+            NavigationDestination(
+              icon: const Icon(Icons.map_outlined),
+              label: localizations.translate('mapTab'),
             ),
             NavigationDestination(
               icon: const Icon(Icons.bookmark),

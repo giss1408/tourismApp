@@ -41,7 +41,7 @@ class DestinationInfoRequestService {
       localizations.infoEmailIntro,
       '- ${localizations.infoEmailNameLabel}: ${destination.name}',
       '- ${localizations.infoEmailLocationLabel}: ${destination.location}',
-      '- ${localizations.infoEmailPriceLabel}: \$${destination.discountedPrice.toStringAsFixed(2)}',
+      '- ${localizations.infoEmailPriceLabel}: ${destination.discountedPrice.toStringAsFixed(2)} €',
       '- ${localizations.infoEmailQuestionTypeLabel}: ${data.questionType}',
       '- ${localizations.infoEmailPreferredContactLabel}: ${data.preferredContact}',
       '',

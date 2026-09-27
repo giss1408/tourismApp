@@ -6,6 +6,8 @@ import '../providers/favorites_provider.dart';
 import '../widgets/destination_card.dart';
 import '../widgets/search_widget.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/money.dart';
+import '../utils/responsive_layout.dart';
 
 class _CategoryOption {
   final String name;
@@ -243,7 +245,7 @@ class _DestinationsScreenState extends State<DestinationsScreen> {
                           builder: (context, constraints) {
                             final width = constraints.maxWidth;
                             final crossAxisCount =
-                                width >= 1100 ? 4 : (width >= 700 ? 3 : 2);
+                                ResponsiveLayout.destinationColumnsForWidth(width);
 
                             return RefreshIndicator(
                               onRefresh: () => context
@@ -255,7 +257,8 @@ class _DestinationsScreenState extends State<DestinationsScreen> {
                                   crossAxisCount: crossAxisCount,
                                   crossAxisSpacing: 16,
                                   mainAxisSpacing: 16,
-                                  childAspectRatio: width >= 700 ? 0.82 : 0.76,
+                                  childAspectRatio: ResponsiveLayout
+                                      .destinationCardAspectRatio(crossAxisCount),
                                 ),
                                 itemCount: filteredDestinations.length,
                                 itemBuilder: (context, index) {
@@ -313,7 +316,7 @@ class _DestinationsScreenState extends State<DestinationsScreen> {
       isScrollControlled: true,
       showDragHandle: true,
       builder: (context) {
-        final currency = maxPrice > 0 ? '\$${budget.toStringAsFixed(0)}' : 'Any';
+        final currency = maxPrice > 0 ? Money.eur(context, budget) : 'Any';
 
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -424,10 +427,10 @@ class _DestinationsScreenState extends State<DestinationsScreen> {
         },
         avatar: Icon(icon, size: 16),
         backgroundColor: Colors.grey[200],
-        selectedColor: Colors.blue.shade100,
-        checkmarkColor: Colors.blue,
+        selectedColor: Theme.of(context).colorScheme.primaryContainer,
+        checkmarkColor: Theme.of(context).colorScheme.primary,
         labelStyle: TextStyle(
-          color: isSelected ? Colors.blue : Colors.black87,
+          color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
       ),

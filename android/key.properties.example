@@ -1,0 +1,7 @@
+# Copy to android/key.properties (git-ignored). Create the upload key once:
+#   keytool -genkey -v -keystore ~/akwaba-upload.jks -keyalg RSA -keysize 2048 \
+#     -validity 10000 -alias upload
+storeFile=/Users/you/akwaba-upload.jks
+storePassword=CHANGE_ME
+keyAlias=upload
+keyPassword=CHANGE_ME

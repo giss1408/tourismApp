@@ -5,6 +5,7 @@ import 'package:explore_world/screens/trip_info_screen.dart';
 import 'package:explore_world/services/analytics_service.dart';
 import 'package:explore_world/widgets/booking_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -49,11 +50,25 @@ Widget _localizedApp({required Widget home}) => MaterialApp(
       home: home,
     );
 
+/// Pumps until the translations are loaded. They come from asset files:
+/// real I/O the widget tester's fake clock never waits for.
+Future<void> _pumpLocalized(WidgetTester tester) async {
+  for (var i = 0; i < 50 && find.byType(Text).evaluate().isEmpty; i++) {
+    await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await tester.pump();
+  }
+  await tester.pumpAndSettle();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
+    // A translation file cached by an earlier test was loaded in that test's
+    // fake-async zone, which is gone; awaiting it again would never complete.
+    rootBundle.clear();
   });
 
   testWidgets('BookingDialog renders setup step', (tester) async {
@@ -72,7 +87,7 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpLocalized(tester);
 
     expect(find.text('Review Booking'), findsOneWidget);
     expect(find.text('Paris'), findsOneWidget);
@@ -86,7 +101,7 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    await _pumpLocalized(tester);
 
     // If localization hasn't loaded yet, the fallback AppLocalizations still
     // renders the screen structure — check the structural icon

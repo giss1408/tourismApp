@@ -3,7 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LanguageProvider with ChangeNotifier {
-  Locale _locale = const Locale('en');
+  /// Until the traveller picks a language, follow the phone's when we
+  /// support it; otherwise French, the language of Côte d'Ivoire.
+  Locale _locale = _deviceLocale();
+
+  static const fallbackLocale = Locale('fr');
+
+  static Locale _deviceLocale() {
+    final code =
+        WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+    final supported =
+        supportedLanguages.any((language) => language['code'] == code);
+    return supported ? Locale(code) : fallbackLocale;
+  }
 
   Locale get locale => _locale;
 
@@ -25,9 +37,9 @@ class LanguageProvider with ChangeNotifier {
 
   // Supported languages
   static final List<Map<String, String>> supportedLanguages = [
+    {'code': 'fr', 'name': 'French', 'nativeName': 'Français'},
     {'code': 'en', 'name': 'English', 'nativeName': 'English'},
     {'code': 'de', 'name': 'German', 'nativeName': 'Deutsch'},
-    {'code': 'fr', 'name': 'French', 'nativeName': 'Français'},
   ];
 
   String getCurrentLanguageName() {

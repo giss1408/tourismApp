@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/destination_model.dart';
 import '../repositories/destination_repository.dart';
@@ -15,6 +18,13 @@ class DestinationProvider with ChangeNotifier {
   bool _isLoading = false;
   String _error = '';
   DestinationDataStatus _status = DestinationDataStatus.idle;
+
+  /// Last full catalogue, shown at start-up and when the network fails.
+  static const _cacheKey = 'destinations_cache_v1';
+
+  /// True while showing cached data because the refresh failed.
+  bool _isOffline = false;
+  bool get isOffline => _isOffline;
 
   List<Destination> get destinations => _destinations;
   List<Destination> get featuredDestinations => _featuredDestinations;
@@ -38,26 +48,62 @@ class DestinationProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
+    // Cache first: the catalogue shows instantly, then refreshes.
+    final fullCatalogue = options == null;
+    if (fullCatalogue && _destinations.isEmpty) {
+      final cached = await _readCache();
+      if (cached.isNotEmpty) {
+        _destinations = cached;
+        _featuredDestinations = cached.where((d) => d.isFeatured).toList();
+        notifyListeners();
+      }
+    }
+
     try {
       _destinations = await _repository.fetchDestinations(options: options);
       _error = '';
+      _isOffline = false;
       _status = DestinationDataStatus.success;
-      if (kDebugMode) {
-        debugPrint('[DestinationProvider] loaded ${_destinations.length} destinations');
-      }
+      if (fullCatalogue) await _writeCache(_destinations);
     } catch (e, st) {
-      _error = 'Failed to load destinations: $e';
-      _destinations = [];
-      _status = DestinationDataStatus.error;
-      if (kDebugMode) {
-        debugPrint('[DestinationProvider] ERROR: $e');
-        debugPrint('[DestinationProvider] STACKTRACE: $st');
+      if (kDebugMode) debugPrint('[DestinationProvider] $e\n$st');
+      final cached = fullCatalogue ? await _readCache() : <Destination>[];
+      if (cached.isNotEmpty) {
+        _destinations = cached;
+        _isOffline = true;
+        _error = '';
+        _status = DestinationDataStatus.success;
+      } else {
+        _error = 'Unable to load destinations. Check your connection and try again.';
+        _destinations = [];
+        _status = DestinationDataStatus.error;
       }
     } finally {
       _featuredDestinations = _destinations.where((d) => d.isFeatured).toList();
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<List<Destination>> _readCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_cacheKey);
+      if (raw == null) return [];
+      return (jsonDecode(raw) as List<dynamic>)
+          .map((item) => Destination.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return []; // Corrupt or outdated cache: ignore it.
+    }
+  }
+
+  Future<void> _writeCache(List<Destination> destinations) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+          _cacheKey, jsonEncode(destinations.map((d) => d.toJson()).toList()));
+    } catch (_) {}
   }
 
   List<Destination> getDestinationsByCategory(String category) {

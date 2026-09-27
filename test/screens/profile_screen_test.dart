@@ -2,7 +2,12 @@ import 'dart:async';
 
 import 'package:explore_world/l10n/app_localizations.dart';
 import 'package:explore_world/models/user_model.dart';
+import 'package:explore_world/providers/app_settings_provider.dart';
 import 'package:explore_world/providers/auth_provider.dart';
+import 'package:explore_world/providers/booking_provider.dart';
+import 'package:explore_world/providers/consent_provider.dart';
+import 'package:explore_world/providers/favorites_provider.dart';
+import 'package:explore_world/repositories/travel_repository.dart';
 import 'package:explore_world/providers/language_provider.dart';
 import 'package:explore_world/providers/payment_methods_provider.dart';
 import 'package:explore_world/providers/theme_provider.dart';
@@ -66,7 +71,9 @@ void main() {
     final authProvider = AuthProvider(repository: _SignedInAuthRepository());
     final paymentProvider = PaymentMethodsProvider();
 
-    await Future<void>.delayed(Duration.zero);
+    // Lets the auth stream deliver the signed-in user. Real async: a plain
+    // Future.delayed never completes on the widget tester's fake clock.
+    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
 
     await tester.pumpWidget(
       MultiProvider(
@@ -77,6 +84,13 @@ void main() {
             create: (_) => LanguageProvider(),
           ),
           ChangeNotifierProvider<PaymentMethodsProvider>.value(value: paymentProvider),
+          ChangeNotifierProvider(create: (_) => BookingProvider()),
+          ChangeNotifierProvider(create: (_) => FavoritesProvider()),
+          ChangeNotifierProvider(create: (_) => ConsentProvider()),
+          ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(repository: const MockTravelRepository()),
+          ),
+          Provider<TravelRepository>.value(value: const MockTravelRepository()),
         ],
         child: const MaterialApp(
           localizationsDelegates: [
@@ -97,6 +111,10 @@ void main() {
 
     await tester.pumpAndSettle();
 
+    // The entry is below the fold of the 800x600 test screen.
+    await tester.scrollUntilVisible(find.text('Payment Methods'), 200);
+    await tester.ensureVisible(find.text('Payment Methods'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Payment Methods'));
     await tester.pumpAndSettle();
 

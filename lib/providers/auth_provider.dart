@@ -92,7 +92,7 @@ class AuthProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _isLoading = false;
-      _error = 'An unexpected error occurred: $e';
+      _error = _describe(e);
       notifyListeners();
       return false;
     }
@@ -118,7 +118,7 @@ class AuthProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _isLoading = false;
-      _error = 'An unexpected error occurred: $e';
+      _error = _describe(e);
       notifyListeners();
       return false;
     }
@@ -141,7 +141,7 @@ class AuthProvider with ChangeNotifier {
       return false;
     } catch (e, st) {
       _isLoading = false;
-      _error = e.toString();
+      _error = _describe(e);
       if (kDebugMode) {
         debugPrint('[AuthProvider] signInWithGoogle error: $e');
         debugPrint('[AuthProvider] signInWithGoogle trace: $st');
@@ -168,7 +168,7 @@ class AuthProvider with ChangeNotifier {
       return false;
     } catch (e, st) {
       _isLoading = false;
-      _error = e.toString();
+      _error = _describe(e);
       if (kDebugMode) {
         debugPrint('[AuthProvider] signInWithFacebook error: $e');
         debugPrint('[AuthProvider] signInWithFacebook trace: $st');
@@ -192,7 +192,7 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _isLoading = false;
-      _error = 'Failed to sign out: $e';
+      _error = _describe(e);
       notifyListeners();
     }
   }
@@ -215,7 +215,7 @@ class AuthProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _isLoading = false;
-      _error = 'Failed to reset password: $e';
+      _error = _describe(e);
       notifyListeners();
       return false;
     }
@@ -242,7 +242,7 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return false;
     } catch (e) {
-      _error = e.toString();
+      _error = _describe(e);
       notifyListeners();
       return false;
     }
@@ -275,7 +275,7 @@ class AuthProvider with ChangeNotifier {
       return false;
     } catch (e) {
       _isLoading = false;
-      _error = e.toString();
+      _error = _describe(e);
       notifyListeners();
       return false;
     }
@@ -291,5 +291,12 @@ class AuthProvider with ChangeNotifier {
     _authSubscription?.cancel();
     _sessionSubscription?.cancel();
     super.dispose();
+  }
+
+  /// A message the user can act on, without technical details.
+  String _describe(Object error) {
+    if (kDebugMode) debugPrint('[Auth] $error');
+    if (error is GraphQlRequestException) return error.userMessage;
+    return 'Something went wrong. Please try again.';
   }
 }

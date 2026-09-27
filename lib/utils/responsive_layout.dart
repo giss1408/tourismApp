@@ -12,15 +12,20 @@ class ResponsiveLayout {
     return MediaQuery.of(context).size.width >= desktopBreakpoint;
   }
 
-  static int destinationGridCount(BuildContext context) {
-    if (isDesktop(context)) {
-      return 4;
-    }
-    if (isTablet(context)) {
-      return 3;
-    }
-    return 2;
+  /// Destination cards per row: one on phones, so each photo is shown
+  /// large; more on wider screens.
+  static int destinationGridCount(BuildContext context) =>
+      destinationColumnsForWidth(MediaQuery.of(context).size.width);
+
+  static int destinationColumnsForWidth(double width) {
+    if (width >= desktopBreakpoint) return 3;
+    if (width >= tabletBreakpoint) return 2;
+    return 1;
   }
+
+  /// Width / height of a destination card: landscape when alone on its row.
+  static double destinationCardAspectRatio(int columns) =>
+      columns == 1 ? 1.35 : 1.05;
 
   static double featuredCardWidth(BuildContext context) {
     if (isDesktop(context)) {

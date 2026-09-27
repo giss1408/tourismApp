@@ -25,11 +25,22 @@ dependencies:
   flutter_localizations: 
     sdk: flutter
   intl: ^0.19.0 
+  firebase_messaging: ^14.9.4
+  # 11.4.x: last release compatible with Flutter 3.24 (11.5 needs 3.27+).
+  flutter_stripe: 11.4.0
+
+# Keep the Stripe plugin family on 11.4.0 (see flutter_stripe above).
+dependency_overrides:
+  stripe_platform_interface: 11.4.0
+  stripe_android: 11.4.0
+  stripe_ios: 11.4.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.4
 
 flutter:
   uses-material-design: true
@@ -42,3 +53,29 @@ flutter:
 flutter_intl:
   enabled: true
   main_locale: en
+# App icon: `dart run flutter_launcher_icons` (source art in assets/branding).
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/branding/app_icon.png"
+  adaptive_icon_background: "#00794A"
+  adaptive_icon_foreground: "assets/branding/app_icon_foreground.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/branding/app_icon.png"
+    background_color: "#FBF7EF"
+    theme_color: "#00794A"
+
+# Launch screen: `dart run flutter_native_splash:create`.
+flutter_native_splash:
+  color: "#FBF7EF"
+  image: assets/branding/splash_logo.png
+  color_dark: "#0E1311"
+  android_12:
+    color: "#FBF7EF"
+    image: assets/branding/app_icon_foreground.png
+    icon_background_color: "#00794A"
+    color_dark: "#0E1311"
+  web: true

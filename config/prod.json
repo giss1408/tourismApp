@@ -1,0 +1,5 @@
+{
+  "APP_FLAVOR": "prod",
+  "USE_GRAPHQL_API": "true",
+  "GRAPHQL_ENDPOINT": "https://api.akwaba-ivoire.com/graphql/"
+}

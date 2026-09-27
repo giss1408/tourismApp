@@ -112,7 +112,7 @@ void main() {
     await provider.loadBookings();
 
     expect(provider.status, BookingDataStatus.error);
-    expect(provider.error, contains('Failed to load bookings'));
+    expect(provider.error, contains('Unable to load your bookings'));
     expect(provider.bookings, isEmpty);
   });
 }

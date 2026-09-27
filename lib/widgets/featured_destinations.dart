@@ -6,6 +6,7 @@ import '../screens/destination_detail_screen.dart';
 import '../utils/responsive_layout.dart';
 import 'booking_dialog.dart';
 import 'optimized_network_image.dart';
+import '../utils/money.dart';
 
 class FeaturedDestinations extends StatelessWidget {
   final List<Destination> destinations;
@@ -166,7 +167,7 @@ class _FeaturedDestinationCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            '\$${destination.discountedPrice.toInt()}',
+                            Money.eur(context, destination.discountedPrice),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14,

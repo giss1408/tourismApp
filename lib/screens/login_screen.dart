@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -11,8 +12,17 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  // Debug builds start with the backend's seeded test account
+  // (tourismBE `make seed`); release builds always start empty.
+  static const _testEmail =
+      String.fromEnvironment('DEV_LOGIN_EMAIL', defaultValue: 'test@example.com');
+  static const _testPassword =
+      String.fromEnvironment('DEV_LOGIN_PASSWORD', defaultValue: 'Test1234!');
+
+  final _emailController =
+      TextEditingController(text: kDebugMode ? _testEmail : '');
+  final _passwordController =
+      TextEditingController(text: kDebugMode ? _testPassword : '');
   bool _obscurePassword = true;
 
   @override
@@ -28,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = context.read<AuthProvider>();
     final success = await authProvider.signInWithEmail(
       _emailController.text.trim(),
-      _passwordController.text.trim(),
+      _passwordController.text,
     );
 
     if (success && mounted) {

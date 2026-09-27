@@ -1,10 +1,12 @@
 import 'package:explore_world/l10n/app_localizations.dart';
 import 'package:explore_world/models/destination_model.dart';
+import 'package:explore_world/providers/app_settings_provider.dart';
 import 'package:explore_world/providers/destination_provider.dart';
 import 'package:explore_world/providers/favorites_provider.dart';
 import 'package:explore_world/providers/personalization_provider.dart';
 import 'package:explore_world/repositories/destination_repository.dart';
 import 'package:explore_world/repositories/query_options.dart';
+import 'package:explore_world/repositories/travel_repository.dart';
 import 'package:explore_world/screens/destination_detail_screen.dart';
 import 'package:explore_world/services/analytics_service.dart';
 import 'package:flutter/material.dart';
@@ -53,6 +55,10 @@ void main() {
       MultiProvider(
         providers: [
           Provider<AnalyticsService>.value(value: const NoopAnalyticsService()),
+          Provider<TravelRepository>.value(value: const MockTravelRepository()),
+          ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(repository: const MockTravelRepository()),
+          ),
           ChangeNotifierProvider(
             create: (_) => DestinationProvider(
               repository: _FakeDestinationRepository(<Destination>[_destination()]),

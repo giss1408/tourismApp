@@ -2,36 +2,29 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "tourismApp – local backend (192.168.178.148)",
+      "name": "Akwaba Ivoire – dev (local backend over USB: adb reverse tcp:8000 tcp:8000)",
       "request": "launch",
       "type": "dart",
-      "args": [
-        "--dart-define=USE_GRAPHQL_API=true",
-        "--dart-define=GRAPHQL_ENDPOINT=http://192.168.178.148:8000/graphql/"
-      ]
+      "args": ["--flavor", "dev", "--dart-define-from-file=config/dev.json"]
     },
     {
-      "name": "tourismApp – local backend + bypass login",
+      "name": "Akwaba Ivoire – dev, bypass login",
       "request": "launch",
       "type": "dart",
-      "args": [
-        "--dart-define=USE_GRAPHQL_API=true",
-        "--dart-define=GRAPHQL_ENDPOINT=http://192.168.178.148:8000/graphql/",
-        "--dart-define=DEV_AUTO_LOGIN=true"
-      ]
+      "args": ["--flavor", "dev", "--dart-define-from-file=config/dev.json", "--dart-define=DEV_AUTO_LOGIN=true"]
     },
     {
-      "name": "tourismApp – mock data + bypass login",
+      "name": "Akwaba Ivoire – dev, demo data (no backend)",
       "request": "launch",
       "type": "dart",
-      "args": [
-        "--dart-define=DEV_AUTO_LOGIN=true"
-      ]
+      "args": ["--flavor", "dev", "--dart-define=APP_FLAVOR=dev"]
     },
     {
-      "name": "tourismApp – mock data (no backend)",
+      "name": "Akwaba Ivoire – prod (release)",
       "request": "launch",
-      "type": "dart"
+      "type": "dart",
+      "flutterMode": "release",
+      "args": ["--flavor", "prod", "--dart-define-from-file=config/prod.json"]
     }
   ]
 }

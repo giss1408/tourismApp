@@ -2,21 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
 import '../providers/booking_provider.dart';
+import '../utils/dates.dart';
+import '../utils/money.dart';
 
 class TripInfoScreen extends StatelessWidget {
   final Booking booking;
 
   const TripInfoScreen({super.key, required this.booking});
 
-  String _formatDate(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '${date.year}-$month-$day';
-  }
 
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
+    final confirmed = booking.status == 'Confirmed';
 
     return Scaffold(
       appBar: AppBar(
@@ -34,16 +32,25 @@ class TripInfoScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.verified, color: Colors.green.shade600),
+                      confirmed
+                          ? Icon(Icons.verified, color: Colors.green.shade600)
+                          : Icon(Icons.hourglass_top,
+                              color: Colors.orange.shade700),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          localizations.bookingConfirmedTitle,
+                          confirmed
+                              ? localizations.bookingConfirmedTitle
+                              : localizations.translate('bookingPendingTitle'),
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
                   ),
+                  if (!confirmed) ...[
+                    const SizedBox(height: 4),
+                    Text(localizations.translate('bookingPendingSubtitle')),
+                  ],
                   const SizedBox(height: 8),
                   Text('${localizations.referenceLabel}: ${booking.reference}'),
                   Text('${localizations.destinationLabel}: ${booking.destinationName}'),
@@ -65,13 +72,15 @@ class TripInfoScreen extends StatelessWidget {
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 10),
-                  _InfoRow(label: localizations.checkIn, value: _formatDate(booking.checkInDate)),
-                  _InfoRow(label: localizations.checkOut, value: _formatDate(booking.checkOutDate)),
+                  _InfoRow(label: localizations.checkIn, value: formatDate(context, booking.checkInDate)),
+                  _InfoRow(label: localizations.checkOut, value: formatDate(context, booking.checkOutDate)),
                   _InfoRow(label: localizations.guests, value: '${booking.guests}'),
                   _InfoRow(label: localizations.nights, value: '${booking.nights}'),
                   _InfoRow(
-                    label: localizations.totalPaidLabel,
-                    value: '\$${booking.totalPrice.toStringAsFixed(2)}',
+                    label: confirmed
+                        ? localizations.totalPaidLabel
+                        : localizations.translate('totalDueLabel'),
+                    value: Money.eurWithXof(context, booking.totalPrice, cents: true),
                     isStrong: true,
                   ),
                 ],

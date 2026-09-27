@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 
 import '../models/user_model.dart';
@@ -63,7 +64,7 @@ class HybridAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() async {
     try {
-      const mutation = r'''mutation SignOut { signOut }''';
+      const mutation = r'''mutation SignOut { signOut { ok } }''';
       await _graphQl.mutate(operationName: 'SignOut', document: mutation);
     } catch (_) {}
     GraphQlAuthSession.clear();
@@ -82,18 +83,45 @@ class HybridAuthRepository implements AuthRepository {
     );
   }
 
-  // Delegate profile management to Firebase (requires Firebase sign-in)
+  // The backend holds the profile of every account; social accounts are
+  // also kept in sync on Firebase.
   @override
-  Future<void> updateDisplayName(String displayName) =>
-      _firebase.updateDisplayName(displayName);
+  Future<void> updateDisplayName(String displayName) async {
+    await _graphQl.mutate(
+      operationName: 'UpdateProfile',
+      document: r'''
+        mutation UpdateProfile($displayName: String!) {
+          updateProfile(displayName: $displayName) { displayName }
+        }
+      ''',
+      variables: {'displayName': displayName},
+    );
+    if (fb.FirebaseAuth.instance.currentUser != null) {
+      await _firebase.updateDisplayName(displayName).catchError((_) {});
+    }
+  }
 
   @override
   Future<void> sendEmailVerification() =>
       _firebase.sendEmailVerification();
 
+  /// Email accounts are backend accounts: their password lives there.
   @override
-  Future<void> changePassword(String currentPassword, String newPassword) =>
-      _firebase.changePassword(currentPassword, newPassword);
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    try {
+      await _graphQl.mutate(
+        operationName: 'ChangePassword',
+        document: r'''
+          mutation ChangePassword($currentPassword: String!, $newPassword: String!) {
+            changePassword(currentPassword: $currentPassword, newPassword: $newPassword) { ok }
+          }
+        ''',
+        variables: {'currentPassword': currentPassword, 'newPassword': newPassword},
+      );
+    } on GraphQlRequestException catch (e) {
+      throw AuthFailure(e.userMessage);
+    }
+  }
 
   @override
   Future<AppUser> signInWithGoogle() async {
@@ -110,12 +138,12 @@ class HybridAuthRepository implements AuthRepository {
   }
 
   Future<AppUser> _socialSignIn(AppUser firebaseUser) async {
-    if (kDebugMode) {
-      debugPrint('[HybridAuth] _socialSignIn uid=${firebaseUser.uid} email=${firebaseUser.email}');
-    }
+    // The backend verifies this token; uid/email alone are not trusted.
+    final idToken = await fb.FirebaseAuth.instance.currentUser?.getIdToken();
 
     const mutation = r'''
       mutation SocialSignIn(
+        $idToken: String
         $uid: String!
         $email: String!
         $displayName: String
@@ -123,6 +151,7 @@ class HybridAuthRepository implements AuthRepository {
         $provider: String!
       ) {
         socialSignIn(
+          idToken: $idToken
           uid: $uid
           email: $email
           displayName: $displayName
@@ -139,6 +168,7 @@ class HybridAuthRepository implements AuthRepository {
         operationName: 'SocialSignIn',
         document: mutation,
         variables: {
+          'idToken': idToken,
           'uid': firebaseUser.uid,
           'email': (firebaseUser.email?.isNotEmpty == true)
               ? firebaseUser.email
@@ -149,11 +179,6 @@ class HybridAuthRepository implements AuthRepository {
         },
       );
 
-      if (kDebugMode) {
-        debugPrint('[HybridAuth] socialSignIn data=${result.data}');
-        debugPrint('[HybridAuth] socialSignIn exception=${result.exception}');
-      }
-
       final json = result.data?['socialSignIn'] as Map<String, dynamic>?;
       if (json == null) {
         throw const AuthFailure('Social sign-in: empty response from backend.');
@@ -162,10 +187,7 @@ class HybridAuthRepository implements AuthRepository {
       _storeToken(json, result.data);
       return AuthUserDto.fromJson(json).toDomain();
     } catch (e, st) {
-      if (kDebugMode) {
-        debugPrint('[HybridAuth] _socialSignIn ERROR: $e');
-        debugPrint('[HybridAuth] _socialSignIn TRACE: $st');
-      }
+      if (kDebugMode) debugPrint('[HybridAuth] socialSignIn failed: $e\n$st');
       rethrow;
     }
   }

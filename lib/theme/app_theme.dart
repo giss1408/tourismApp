@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 
+/// Côte d'Ivoire palette: the flag's green and orange, on warm ivory.
+/// Shades are deepened where white text sits on them (WCAG AA contrast).
 class AppColors {
-  static const Color brandBlue = Color(0xFF145DA0);
-  static const Color oceanTeal = Color(0xFF1A8A84);
-  static const Color spruceGreen = Color(0xFF2E7D6B);
-  static const Color warmSand = Color(0xFFF4EFE6);
-  static const Color ink = Color(0xFF1B2430);
-  static const Color slate = Color(0xFF61717F);
+  static const Color ivoryGreen = Color(0xFF00794A); // flag green #009E60, deepened
+  static const Color flagGreen = Color(0xFF009E60);
+  static const Color ivoryOrange = Color(0xFFC75C00); // flag orange #F77F00, deepened
+  static const Color flagOrange = Color(0xFFF77F00);
+  static const Color lagoon = Color(0xFF0F766E);
+  static const Color ivory = Color(0xFFFBF7EF);
+  static const Color ink = Color(0xFF1C2421);
+  static const Color slate = Color(0xFF5E6B66);
 }
 
 class AppTheme {
@@ -15,37 +19,30 @@ class AppTheme {
       return const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          Color(0xFF0B2239),
-          Color(0xFF134A54),
-          Color(0xFF195847),
-        ],
+        colors: [Color(0xFF06291C), Color(0xFF0B4A33), Color(0xFF5A2E06)],
       );
     }
-
     return const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [
-        Color(0xFF145DA0),
-        Color(0xFF1A8A84),
-        Color(0xFF2E7D6B),
-      ],
+      colors: [AppColors.ivoryGreen, Color(0xFF00603B), AppColors.ivoryOrange],
     );
   }
 
   static ThemeData get lightTheme {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: AppColors.brandBlue,
+      seedColor: AppColors.ivoryGreen,
       brightness: Brightness.light,
     ).copyWith(
-      primary: AppColors.brandBlue,
-      secondary: AppColors.oceanTeal,
-      tertiary: AppColors.spruceGreen,
+      primary: AppColors.ivoryGreen,
+      onPrimary: Colors.white,
+      secondary: AppColors.ivoryOrange,
+      onSecondary: Colors.white,
+      tertiary: AppColors.lagoon,
       surface: Colors.white,
-      surfaceContainerHighest: const Color(0xFFE8EEF4),
+      surfaceContainerHighest: const Color(0xFFEFEAE0),
       onSurface: AppColors.ink,
-      outline: const Color(0xFFD1D9E1),
+      outline: const Color(0xFFD9D2C3),
     );
 
     return _buildTheme(colorScheme);
@@ -53,15 +50,17 @@ class AppTheme {
 
   static ThemeData get darkTheme {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: AppColors.brandBlue,
+      seedColor: AppColors.ivoryGreen,
       brightness: Brightness.dark,
     ).copyWith(
-      primary: const Color(0xFF6CB4FF),
-      secondary: const Color(0xFF5FD3CC),
-      tertiary: const Color(0xFF79C7A0),
-      surface: const Color(0xFF11161C),
-      onSurface: const Color(0xFFE8EDF2),
-      outline: const Color(0xFF304050),
+      primary: const Color(0xFF4FD19A),
+      onPrimary: const Color(0xFF00301C),
+      secondary: const Color(0xFFFFA24A),
+      onSecondary: const Color(0xFF3A1D00),
+      tertiary: const Color(0xFF5ECFC4),
+      surface: const Color(0xFF141A17),
+      onSurface: const Color(0xFFE9EEEA),
+      outline: const Color(0xFF34423C),
     );
 
     return _buildTheme(colorScheme);
@@ -74,7 +73,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor:
-          isDark ? const Color(0xFF0C1117) : const Color(0xFFF7FAFC),
+          isDark ? const Color(0xFF0E1311) : AppColors.ivory,
       textTheme: ThemeData(
         brightness: colorScheme.brightness,
       ).textTheme.apply(
@@ -116,7 +115,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: isDark ? const Color(0xFF16202A) : Colors.white,
+        fillColor: isDark ? const Color(0xFF1A221E) : Colors.white,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         border: OutlineInputBorder(
@@ -161,7 +160,7 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: isDark ? const Color(0xFF202C3A) : const Color(0xFF243242),
+        backgroundColor: isDark ? const Color(0xFF22302A) : AppColors.ink,
         contentTextStyle: const TextStyle(color: Colors.white),
       ),
     );

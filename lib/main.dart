@@ -14,6 +14,11 @@ import 'providers/language_provider.dart';
 import 'providers/favorites_provider.dart';
 import 'providers/personalization_provider.dart';
 import 'providers/payment_methods_provider.dart';
+import 'providers/app_settings_provider.dart';
+import 'providers/consent_provider.dart';
+import 'repositories/travel_repository.dart';
+import 'services/payment_service.dart';
+import 'services/push_service.dart';
 import 'services/api_analytics_service.dart';
 import 'services/analytics_service.dart';
 import 'services/mock_analytics_service.dart';
@@ -63,16 +68,35 @@ Future<void> main() async {
               )
             : const FirebaseAuthRepository();
 
-    final analyticsService = config.useGraphQlApi
-        ? ApiAnalyticsService(
-            endpoint: config.graphQlEndpoint,
-          )
-        : MockAnalyticsService();
+    // Usage statistics only flow once the traveller consents (GDPR).
+    final consent = ConsentProvider();
+    await consent.load();
+    final AnalyticsService analyticsService = ConsentAnalyticsService(
+      config.useGraphQlApi
+          ? ApiAnalyticsService(endpoint: config.graphQlEndpoint)
+          : MockAnalyticsService(),
+      consent,
+    );
+
+    final TravelRepository travelRepository = config.useGraphQlApi
+        ? ApiTravelRepository(endpoint: config.graphQlEndpoint)
+        : const MockTravelRepository();
+    final messengerKey = GlobalKey<ScaffoldMessengerState>();
 
     runApp(
       MultiProvider(
         providers: [
           Provider<AnalyticsService>.value(value: analyticsService),
+          Provider<TravelRepository>.value(value: travelRepository),
+          Provider<PaymentService>.value(value: PaymentService(travelRepository)),
+          Provider<PushService>.value(
+            value: PushService(travelRepository, messengerKey: messengerKey),
+          ),
+          Provider<GlobalKey<ScaffoldMessengerState>>.value(value: messengerKey),
+          ChangeNotifierProvider<ConsentProvider>.value(value: consent),
+          ChangeNotifierProvider(
+            create: (_) => AppSettingsProvider(repository: travelRepository),
+          ),
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
           ChangeNotifierProvider(
             create: (_) => DestinationProvider(repository: destinationRepository),

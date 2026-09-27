@@ -18,7 +18,27 @@ class GraphQlRequestException implements Exception {
   final String operation;
   final String message;
 
-  const GraphQlRequestException({required this.operation, required this.message});
+  /// The server's own error message (e.g. "Invalid credentials."), safe to
+  /// show to the user. Null for network failures.
+  final String? serverMessage;
+
+  /// A network or timeout failure, worth retrying. Errors answered by the
+  /// server (bad password, validation…) never are.
+  final bool isNetworkError;
+
+  const GraphQlRequestException({
+    required this.operation,
+    required this.message,
+    this.serverMessage,
+    this.isNetworkError = false,
+  });
+
+  /// Text for the UI: the server's message, or a generic network notice.
+  String get userMessage =>
+      serverMessage ??
+      (isNetworkError
+          ? 'Unable to reach the server. Check your connection and try again.'
+          : 'Something went wrong. Please try again.');
 
   @override
   String toString() => '$operation failed: $message';
@@ -175,11 +195,16 @@ class GraphQlService {
         return await request();
       } on GraphQlUnauthorizedException {
         rethrow;
+      } on GraphQlRequestException catch (e) {
+        // Only network failures are retried: repeating a request the server
+        // answered (e.g. a wrong password) cannot succeed.
+        if (!e.isNetworkError || attempt > maxRetries) rethrow;
       } catch (e) {
         if (attempt > maxRetries) {
           throw GraphQlRequestException(
             operation: operationName,
             message: e.toString(),
+            isNetworkError: true,
           );
         }
       }
@@ -199,7 +224,13 @@ class GraphQlService {
       );
     }
 
-    throw GraphQlRequestException(operation: operationName, message: message);
+    final errors = result.exception?.graphqlErrors ?? const <GraphQLError>[];
+    throw GraphQlRequestException(
+      operation: operationName,
+      message: message,
+      serverMessage: errors.isEmpty ? null : errors.first.message,
+      isNetworkError: errors.isEmpty,
+    );
   }
 
   bool _isUnauthorized(OperationException? exception) {

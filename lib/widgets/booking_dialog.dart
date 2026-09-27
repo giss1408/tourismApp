@@ -5,6 +5,8 @@ import '../models/destination_model.dart';
 import '../providers/booking_provider.dart';
 import '../screens/trip_info_screen.dart';
 import '../services/analytics_service.dart';
+import '../providers/app_settings_provider.dart';
+import '../utils/money.dart';
 
 class BookingDialog extends StatefulWidget {
   final Destination destination;
@@ -26,6 +28,12 @@ class _BookingDialogState extends State<BookingDialog> {
     final diff = _checkOutDate.difference(_checkInDate).inDays;
     return diff <= 0 ? 1 : diff;
   }
+
+  /// The operator's fee (backend settings); the default when offline or in
+  /// tests without the provider.
+  double get _serviceFee =>
+      Provider.of<AppSettingsProvider?>(context, listen: false)?.settings.serviceFeeEur ??
+      Money.serviceFeeEur;
 
   double get _totalPrice {
     return widget.destination.discountedPrice * _guests * _nights;
@@ -271,7 +279,7 @@ class _BookingDialogState extends State<BookingDialog> {
           Text('$_guests guest(s) • $_nights night(s)'),
           const SizedBox(height: 2),
           Text(
-            'Estimated total: \$${_totalPrice.toStringAsFixed(2)}',
+            'Estimated total: ${Money.eur(context, _totalPrice + _serviceFee, cents: true)}',
             style: TextStyle(
               color: Theme.of(context).colorScheme.tertiary,
               fontWeight: FontWeight.bold,
@@ -292,19 +300,20 @@ class _BookingDialogState extends State<BookingDialog> {
       children: [
         _buildReviewRow(
           'Base fare',
-          '\$${(widget.destination.price * _nights * _guests).toStringAsFixed(2)}',
+          Money.eur(context, widget.destination.price * _nights * _guests, cents: true),
         ),
         if (widget.destination.discount > 0)
           _buildReviewRow(
             'Discount',
-            '-\$${discountAmount.toStringAsFixed(2)}',
+            '-${Money.eur(context, discountAmount, cents: true)}',
             valueColor: Theme.of(context).colorScheme.tertiary,
           ),
-        _buildReviewRow('Service fee', '\$29.00'),
+        _buildReviewRow(
+            'Service fee', Money.eur(context, _serviceFee, cents: true)),
         const Divider(),
         _buildReviewRow(
           'Total',
-          '\$${(base + 29).toStringAsFixed(2)}',
+          Money.eurWithXof(context, base + _serviceFee, cents: true),
           isStrong: true,
         ),
       ],
@@ -375,7 +384,7 @@ class _BookingDialogState extends State<BookingDialog> {
   Future<void> _confirmBooking() async {
     final bookingProvider = context.read<BookingProvider>();
     final navigator = Navigator.of(context);
-    final finalTotal = _totalPrice + 29;
+    final finalTotal = _totalPrice + _serviceFee;
 
     final booking = Booking(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
@@ -390,7 +399,8 @@ class _BookingDialogState extends State<BookingDialog> {
       guests: _guests,
       nights: _nights,
       totalPrice: finalTotal,
-      status: 'Confirmed',
+      // Confirmed by the operator once the booking is checked.
+      status: 'Pending',
       notes: _notes.trim(),
     );
 
